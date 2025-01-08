@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensures responsive rendering on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make Rotas</title>
+
+  <!-- Bootstrap CSS -->
+  <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
+    rel="stylesheet"
+  >
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container mt-4">
+    <!-- Title -->
+    <h1 class="mb-4 text-center">Make Rotas</h1>
+    
+    <!-- Rota Table Section -->
+    <div id="rotaContainer">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>👤 STAFF MEMBER</th>
+              <th>ROLE</th>
+              <th>MON <span class="date-label">16 Dec</span></th>
+              <th>TUE <span class="date-label">17 Dec</span></th>
+              <th>WED <span class="date-label">18 Dec</span></th>
+              <th>THU <span class="date-label">19 Dec</span></th>
+              <th>FRI <span class="date-label">20 Dec</span></th>
+              <th>SAT <span class="date-label">21 Dec</span></th>
+              <th>SUN <span class="date-label">22 Dec</span></th>
+              <th>⏱ TOTAL HOURS</th>
+              <th>O/T</th>
+              <th>GRAND TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="rotaTableBody"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td>TOTAL HOURS</td>
+              <td></td>
+              <td colspan="7"></td>
+              <td class="total-hours">0.00</td>
+              <td class="total-ot">0.00</td>
+              <td class="grand-total">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <button class="btn btn-primary w-100 save-btn mt-2" onclick="saveAsImage()">
+        Save as Image
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button id="fab" class="fab" onclick="showDialog()">+</button>
+
+  <!-- Custom Dialog -->
+  <div id="addStaffDialog" class="custom-dialog">
+    <div class="custom-dialog-content">
+      <!-- Dialog Title -->
+      <h5>Add Staff Member</h5>
+      
+      <!-- Responsive Input Fields -->
+      <!-- Using Bootstrap row/col so they stack on small devices but can share space on large devices -->
+      <div class="row g-2 mb-3">
+        <div class="col-12 col-md-4">
+          <input 
+            type="text" 
+            class="form-control" 
+            id="firstName" 
+            placeholder="First Name"
+          >
+        </div>
+        <div class="col-12 col-md-4">
+          <input 
+            type="text" 
+            class="form-control" 
+            id="lastName" 
+            placeholder="Last Name"
+          >
+        </div>
+        <div class="col-12 col-md-4">
+          <input 
+            type="text" 
+            class="form-control" 
+            id="role" 
+            placeholder="Role"
+          >
+        </div>
+      </div>
+
+      <!-- Dialog Action Buttons -->
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" onclick="closeDialog()">Cancel</button>
+        <button class="btn btn-primary" id="addStaffBtn" onclick="addStaffMember()">
+          Add
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS (bundle includes Popper) -->
+  <script 
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
+  </script>
+
+  <!-- Custom JavaScript -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+.env/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs and debug files
+*.log
+
+# Static files (if not essential to the project)
+static/
+
+# Cache files
+*.cache
+
+# Secret files (e.g., environment variables)
+*.env
+
