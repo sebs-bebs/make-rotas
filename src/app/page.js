@@ -25,32 +25,29 @@ export default function HomePage() {
     localStorage.setItem('staffList', JSON.stringify(staffList));
   }, [staffList]);
 
-  // Adds a new staff member with default shifts
-  const handleAddStaff = (newName) => {
-    if (!newName) return;
-    const exists = staffList.some(
-      (person) => person.name.toLowerCase() === newName.toLowerCase()
-    );
-    if (exists) {
-      alert('Staff member already exists');
-      return;
-    }
-    const newStaff = {
-      id: Date.now(),
-      name: newName,
-      // Changed default shifts from "OFF" to "09:00 to 17:00"
-      shifts: [
-        '09:00 to 17:00',
-        '09:00 to 17:00',
-        '09:00 to 17:00',
-        '09:00 to 17:00',
-        '09:00 to 17:00',
-        '09:00 to 17:00',
-        '09:00 to 17:00',
-      ],
-    };
-    setStaffList((prev) => [...prev, newStaff]);
+// Adds a new staff member with default "OFF" shifts
+const handleAddStaff = (newName) => {
+  if (!newName) return;
+
+  // Check if the staff member already exists
+  const exists = staffList.some(
+    (person) => person.name.toLowerCase() === newName.toLowerCase()
+  );
+  if (exists) {
+    alert('Staff member already exists');
+    return;
+  }
+
+  // Create a new staff object with default "OFF" shifts
+  const newStaff = {
+    id: Date.now(),
+    name: newName,
+    shifts: Array(7).fill('OFF'), // Set all days to "OFF"
   };
+
+  setStaffList((prev) => [...prev, newStaff]);
+};
+
 
   // Removes a staff member by ID
   const handleRemoveStaff = (id) => {
