@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ShiftSlot from '../components/ShiftSlot';
 import ShiftRemarks from '../components/ShiftRemarks';
 import StaffInput from '../components/StaffInput';
@@ -25,46 +25,46 @@ export default function HomePage() {
     localStorage.setItem('staffList', JSON.stringify(staffList));
   }, [staffList]);
 
-// Adds a new staff member with default "OFF" shifts
-const handleAddStaff = (newName) => {
-  if (!newName) return;
+  // Adds a new staff member with default "OFF" shifts
+  const handleAddStaff = (newName) => {
+    if (!newName) return;
 
-  // Check if the staff member already exists
-  const exists = staffList.some(
-    (person) => person.name.toLowerCase() === newName.toLowerCase()
-  );
-  if (exists) {
-    alert('Staff member already exists');
-    return;
-  }
+    // Check if the staff member already exists
+    const exists = staffList.some(
+      (person) => person.name.toLowerCase() === newName.toLowerCase()
+    );
+    if (exists) {
+      alert('Staff member already exists');
+      return;
+    }
 
-  // Create a new staff object with default "OFF" shifts
-  const newStaff = {
-    id: Date.now(),
-    name: newName,
-    shifts: Array(7).fill('OFF'), // Set all days to "OFF"
+    // Create a new staff object with default "OFF" shifts
+    const newStaff = {
+      id: Date.now(),
+      name: newName,
+      shifts: Array(7).fill('OFF'), // Set all days to "OFF"
+    };
+
+    setStaffList((prev) => [...prev, newStaff]);
   };
-
-  setStaffList((prev) => [...prev, newStaff]);
-};
-
 
   // Removes a staff member by ID
   const handleRemoveStaff = (id) => {
     setStaffList((prev) => prev.filter((staff) => staff.id !== id));
   };
 
-  // Updates the shift array for a given staff member
-  const handleShiftsChange = (staffId, newShifts) => {
-    setStaffList((prev) =>
-      prev.map((staff) => {
-        if (staff.id === staffId) {
-          return { ...staff, shifts: newShifts };
-        }
-        return staff;
-      })
-    );
-  };
+  // Updated to use functional update for onShiftsChange
+  const handleShiftsChange = useCallback((staffId, updateFn) => {
+      setStaffList((prevStaffList) =>
+          prevStaffList.map((staff) => {
+              if (staff.id === staffId) {
+                  const updatedShifts = updateFn(staff.shifts);
+                  return { ...staff, shifts: updatedShifts };
+              }
+              return staff;
+          })
+      );
+  }, []);
 
   // Add a remark to the remarks array
   const handleAddRemark = (staffId, dayIndex, remarkText) => {
@@ -106,12 +106,15 @@ const handleAddStaff = (newName) => {
       </div>
 
       {/* Table Wrapper */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-auto max-h-[25rem]">
         <div id="rota-table" className="bg-white p-6 shadow rounded-md">
           <table className="table-auto w-full border-separate border-spacing-0 md:border-spacing-2">
-            <thead>
+            {/* Table Header */}
+            <thead className="sticky top-0 z-30 bg-white">
               <tr className="bg-gray-100">
-                <th className="px-6 py-3 border">STAFF</th>
+                <th className="px-6 py-3 border sticky left-0 bg-gray-100 z-10">
+                  STAFF
+                </th>
                 <th className="px-6 py-3 border">MON 13 Jan</th>
                 <th className="px-6 py-3 border">TUE 14 Jan</th>
                 <th className="px-6 py-3 border">WED 15 Jan</th>
@@ -127,7 +130,8 @@ const handleAddStaff = (newName) => {
                 const totalHours = getWeeklyHours(staff.shifts);
                 return (
                   <tr key={staff.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 border">
+                    {/* First Column Styling */}
+                    <td className="px-6 py-3 border sticky left-0 bg-white z-20">
                       <div className="flex items-center justify-between">
                         <span>{staff.name}</span>
                         <Button
@@ -138,6 +142,7 @@ const handleAddStaff = (newName) => {
                         </Button>
                       </div>
                     </td>
+                    {/* Remaining table cells */}
                     {staff.shifts.map((shift, dayIndex) => (
                       <td key={dayIndex} className="px-6 py-3 border">
                         <ShiftSlot
