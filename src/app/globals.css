@@ -27,8 +27,9 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 150px; /* Ensure this matches the truncate width */
 }
+
 
 .shift-remarks-container {
   display: flex;
@@ -43,4 +44,12 @@ body {
 
 .shift-remarks-button {
   white-space: nowrap;
+}
+
+/* Truncation Styles */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px; /* Adjust based on design requirements */
 }

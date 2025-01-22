@@ -19,22 +19,22 @@ export default function HomePage() {
     if (storedStaffList) {
       setStaffList(JSON.parse(storedStaffList));
     }
-      // Load remarks from localStorage on mount
-        const storedRemarks = localStorage.getItem('allRemarks');
-        if (storedRemarks) {
-            setRemarks(JSON.parse(storedRemarks));
-        }
+    // Load remarks from localStorage on mount
+    const storedRemarks = localStorage.getItem('allRemarks');
+    if (storedRemarks) {
+      setRemarks(JSON.parse(storedRemarks));
+    }
   }, []);
 
   // Save staff list to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('staffList', JSON.stringify(staffList));
   }, [staffList]);
-    
+
   // Save remarks to localStorage whenever it changes
-    useEffect(() => {
-      localStorage.setItem('allRemarks', JSON.stringify(remarks));
-    }, [remarks]);
+  useEffect(() => {
+    localStorage.setItem('allRemarks', JSON.stringify(remarks));
+  }, [remarks]);
 
   // Adds a new staff member with default "OFF" shifts
   const handleAddStaff = (newName) => {
@@ -66,35 +66,28 @@ export default function HomePage() {
 
   // Updated to use functional update for onShiftsChange
   const handleShiftsChange = useCallback((staffId, updateFn) => {
-      setStaffList((prevStaffList) =>
-          prevStaffList.map((staff) => {
-              if (staff.id === staffId) {
-                  const updatedShifts = updateFn(staff.shifts);
-                  return { ...staff, shifts: updatedShifts };
-              }
-              return staff;
-          })
-      );
+    setStaffList((prevStaffList) =>
+      prevStaffList.map((staff) => {
+        if (staff.id === staffId) {
+          const updatedShifts = updateFn(staff.shifts);
+          return { ...staff, shifts: updatedShifts };
+        }
+        return staff;
+      })
+    );
   }, []);
 
-    // Add a remark to the remarks array
-    const handleAddRemark = (staffId, dayIndex, remarkText) => {
-        setRemarks((prev) => [...prev, { staffId, dayIndex, remark: remarkText }]);
-    };
+  // Add a remark to the remarks array
+  const handleAddRemark = (newRemark) => {
+    setRemarks((prev) => [...prev, newRemark]);
+  };
 
-    // Remove a remark
-   const handleRemoveRemark = (staffId, dayIndex, remarkText) => {
-        setRemarks((prev) =>
-            prev.filter(
-                (r) =>
-                    !(
-                        r.staffId === staffId &&
-                        r.dayIndex === dayIndex &&
-                        r.remark === remarkText
-                    )
-            )
-        );
-    };
+  // Remove a remark
+  const handleRemoveRemark = (remarkId) => {
+    setRemarks((prev) =>
+      prev.filter((r) => r.id !== remarkId)
+    );
+  };
 
   // Calculate total hours for one staff member
   const getWeeklyHours = (shifts) => calculateWeeklyHours(shifts);
@@ -170,9 +163,9 @@ export default function HomePage() {
                             (r) =>
                               r.staffId === staff.id && r.dayIndex === dayIndex
                           )}
-                           onAddRemark={handleAddRemark}
-                           onRemoveRemark={handleRemoveRemark}
-                         />
+                          onAddRemark={handleAddRemark}
+                          onRemoveRemark={handleRemoveRemark}
+                        />
                       </td>
                     ))}
                     <td className="px-6 py-3 border text-center font-bold">
