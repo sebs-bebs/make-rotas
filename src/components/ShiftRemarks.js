@@ -10,24 +10,23 @@ export default function ShiftRemarks({
   onRemoveRemark,
 }) {
   const [input, setInput] = useState('');
-  const [isInputVisible, setIsInputVisible] = useState(true); // Track if input is visible
+
+  const hasRemarks = remarks.length > 0;
 
   const handleAdd = () => {
     if (!input.trim()) return;
     onAddRemark(staffId, dayIndex, input.trim());
     setInput('');
-    setIsInputVisible(false); // Hide input after adding remark
   };
 
   const handleRemove = (staffId, dayIndex, remarkText) => {
-      onRemoveRemark(staffId, dayIndex, remarkText);
-      setIsInputVisible(true)
-  }
-
+    onRemoveRemark(staffId, dayIndex, remarkText);
+  };
 
   return (
-      <div className="mt-2">
-        {/* Display existing remarks */}
+    <div className="mt-2">
+      {/* Display existing remarks */}
+      {hasRemarks && (
         <div className="flex flex-wrap gap-2 mb-2">
           {remarks.map((r, idx) => (
             <div
@@ -44,25 +43,26 @@ export default function ShiftRemarks({
             </div>
           ))}
         </div>
+      )}
 
-        {/* Input to add a new remark */}
-        {isInputVisible && (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Comments e.g. Off" // Updated placeholder text
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="border p-2 rounded text-sm w-full"
-            />
-            <button
-              onClick={handleAdd}
-              className="bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600 transition"
-            >
-              +
-            </button>
-          </div>
-        )}
-      </div>
-    );
+      {/* Input to add a new remark */}
+      {!hasRemarks && (
+        <div className="shift-remarks-container">
+          <input
+            type="text"
+            placeholder="Comments e.g. Off"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="shift-remarks-input border p-2 rounded text-sm"
+          />
+          <button
+            onClick={handleAdd}
+            className="shift-remarks-button bg-indigo-500 text-white px-3 py-1 rounded text-sm hover:bg-indigo-600 transition"
+          >
+            +
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }

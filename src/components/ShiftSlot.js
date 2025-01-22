@@ -85,10 +85,10 @@ export default function ShiftSlot({
       };
   
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 w-full">
             {/* Shift Display */}
             {isShiftAdded && (
-                <div className="flex items-center gap-1 bg-gray-200 rounded px-2 py-1 text-sm w-fit"> {/* Adjusted padding to px-2  */}
+                <div className="flex items-center gap-1 bg-gray-200 rounded px-2 py-1 text-sm w-fit shift-slot-chip">
                     <span>{shift}</span>
                     <button
                         onClick={handleRemoveShift}

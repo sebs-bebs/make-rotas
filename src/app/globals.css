@@ -21,3 +21,26 @@ body {
   padding: 0;
   font-family: 'Inter', sans-serif; /* Example custom font */
 }
+
+
+.shift-slot-chip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.shift-remarks-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shift-remarks-input {
+  flex-grow: 1;
+  margin-right: 0.5rem;
+}
+
+.shift-remarks-button {
+  white-space: nowrap;
+}
