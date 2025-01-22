@@ -1,3 +1,4 @@
+// src/components/WeeklyHours.js
 'use client';
 import React from 'react';
 

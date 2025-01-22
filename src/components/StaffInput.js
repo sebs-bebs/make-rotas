@@ -1,3 +1,4 @@
+// src/components/StaffInput.js
 'use client';
 import React, { useState } from 'react';
 import Button from './Button';

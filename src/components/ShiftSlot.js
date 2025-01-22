@@ -1,3 +1,4 @@
+// src/components/ShiftSlot.js
 'use client';
 import React, { useState, useEffect } from 'react';
 import { generateTimeOptions } from '../utils/generateTimeOptions';
@@ -12,15 +13,18 @@ export default function ShiftSlot({
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const timeOptions = generateTimeOptions();
+  const [isShiftAdded, setIsShiftAdded] = useState(false);
 
   useEffect(() => {
     if (shift && shift !== 'OFF') {
       const [start, end] = shift.split('-').map((s) => s.trim());
       setStartTime(start);
       setEndTime(end);
+      setIsShiftAdded(true);
     } else {
       setStartTime('');
       setEndTime('');
+      setIsShiftAdded(false);
     }
   }, [shift]);
 
@@ -41,6 +45,8 @@ export default function ShiftSlot({
           newShifts[dayIndex] = `${startTime} - ${endTime}`;
           return newShifts;
         });
+
+        setIsShiftAdded(true);
       }
     };
 
@@ -64,9 +70,10 @@ export default function ShiftSlot({
   const handleRemoveShift = () => {
     onShiftsChange(staffId, (prevShifts) => {
       const newShifts = [...prevShifts];
-      newShifts[dayIndex] = 'OFF';
+      newShifts[dayIndex] = '';
       return newShifts;
     });
+    setIsShiftAdded(false);
   };
 
   const parseTime = (timeStr) => {
@@ -76,47 +83,51 @@ export default function ShiftSlot({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-3">
-        <span className="px-2 py-1 text-sm rounded bg-gray-200">
-          {shift || 'No shift'}
-        </span>
-        {shift && shift !== 'OFF' && (
+      {/* Shift Display */}
+      {isShiftAdded && (
+        <div className="flex items-center gap-3">
+          <span className="px-2 py-1 text-sm rounded bg-gray-200">
+            {shift}
+          </span>
           <button
             onClick={handleRemoveShift}
             className="text-red-500 hover:underline text-sm"
           >
             Remove Shift
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex items-end gap-3">
-        <select
-          value={startTime}
-          onChange={handleStartTimeChange}
-          className="border border-gray-300 rounded p-1 w-24 text-sm"
-        >
-          <option value="">Start Time</option>
-          {timeOptions.map((time) => (
-            <option key={time} value={time}>
-              {time}
-            </option>
-          ))}
-        </select>
+      {/* Shift Selection */}
+      {!isShiftAdded && (
+        <div className="flex items-end gap-3">
+          <select
+            value={startTime}
+            onChange={handleStartTimeChange}
+            className="border border-gray-300 rounded p-1 w-24 text-sm"
+          >
+            <option value="">Start Time</option>
+            {timeOptions.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
 
-        <select
-          value={endTime}
-          onChange={handleEndTimeChange}
-          className="border border-gray-300 rounded p-1 w-24 text-sm"
-        >
-          <option value="">End Time</option>
-          {timeOptions.map((time) => (
-            <option key={time} value={time}>
-              {time}
-            </option>
-          ))}
-        </select>
-      </div>
+          <select
+            value={endTime}
+            onChange={handleEndTimeChange}
+            className="border border-gray-300 rounded p-1 w-24 text-sm"
+          >
+            <option value="">End Time</option>
+            {timeOptions.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }
