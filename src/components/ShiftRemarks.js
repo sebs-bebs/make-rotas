@@ -1,6 +1,6 @@
 // src/components/ShiftRemarks.js
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function ShiftRemarks({
   staffId,
@@ -11,7 +11,7 @@ export default function ShiftRemarks({
 }) {
   const [input, setInput] = useState('');
 
-  const hasRemarks = remarks.length > 0;
+  const hasRemarks = remarks && remarks.length > 0;
 
   const handleAdd = () => {
     if (!input.trim()) return;
@@ -19,9 +19,9 @@ export default function ShiftRemarks({
     setInput('');
   };
 
-  const handleRemove = (staffId, dayIndex, remarkText) => {
-    onRemoveRemark(staffId, dayIndex, remarkText);
-  };
+    const handleRemove = (remarkText) => {
+       onRemoveRemark(staffId, dayIndex, remarkText);
+    };
 
   return (
     <div className="mt-2">
@@ -35,7 +35,7 @@ export default function ShiftRemarks({
             >
               <span>{r.remark}</span>
               <button
-                onClick={() => handleRemove(staffId, dayIndex, r.remark)}
+                onClick={() => handleRemove(r.remark)}
                 className="text-red-500 ml-2 hover:underline text-xs"
               >
                 x
