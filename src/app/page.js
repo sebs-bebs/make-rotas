@@ -52,6 +52,7 @@ export default function HomePage() {
   const [comments, setComments] = useState({});  // Format: { 'weekId-staffId-dayIndex': { text: 'comment', timestamp: 'date' } }
   const [showBulkAddModal, setShowBulkAddModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(new Set());
+  const [selectedStaffToRemove, setSelectedStaffToRemove] = useState(new Set());
   const [showRemoveAllConfirm, setShowRemoveAllConfirm] = useState(false);
 
   useEffect(() => {
@@ -363,8 +364,23 @@ export default function HomePage() {
     setShowBulkAddModal(false);
   };
 
+  const handleRemoveSelectedStaff = () => {
+    setWeeks(prevWeeks => {
+      return prevWeeks.map(week => {
+        if (week.id === currentWeek.id) {
+          return {
+            ...week,
+            staff: week.staff.filter(staff => !selectedStaffToRemove.has(staff.id))
+          };
+        }
+        return week;
+      });
+    });
+    setSelectedStaffToRemove(new Set());
+  };
+
   const toggleStaffSelection = (staffId) => {
-    setSelectedStaff(prev => {
+    setSelectedStaffToRemove(prev => {
       const newSet = new Set(prev);
       if (newSet.has(staffId)) {
         newSet.delete(staffId);
@@ -517,6 +533,7 @@ export default function HomePage() {
               <table className="min-w-full border-collapse border relative">
                 <thead className="bg-gray-50 sticky top-0 z-20">
                   <tr>
+                    <th className="w-8 px-2 py-3 border-b"></th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-b">
                       Staff Member
                     </th>
@@ -540,16 +557,18 @@ export default function HomePage() {
                   {currentWeek.staff.map((staff) => {
                     const rowKey = `row-${currentWeek.id}-${staff.id}`;
                     return (
-                      <tr key={rowKey}>
-                        <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r">
-                          <div className="flex items-center justify-between">
-                            <span>{staff.name}</span>
-                            <button
-                              onClick={() => handleRemoveStaffFromWeek(staff.id)}
-                              className="text-red-500 hover:text-red-700 ml-2"
-                            >
-                              ×
-                            </button>
+                      <tr key={rowKey} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
+                        <td className="w-8 px-2 py-4 border-r">
+                          <input
+                            type="checkbox"
+                            checked={selectedStaffToRemove.has(staff.id)}
+                            onChange={() => toggleStaffSelection(staff.id)}
+                            className="h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                          />
+                        </td>
+                        <td className="sticky left-0 z-10 bg-white">
+                          <div className="border-r border-gray-300 pr-2">
+                            <div className="truncate max-w-[150px]" title={staff.name}>{staff.name}</div>
                           </div>
                         </td>
                         {currentWeek.days.map((day, dayIndex) => {
@@ -589,25 +608,37 @@ export default function HomePage() {
               </table>
             </div>
 
-            {/* Add Staff to Week button */}
+            {/* Staff Management Buttons */}
             <div className="mt-4 mb-4 flex gap-4">
               <button
                 onClick={() => setShowBulkAddModal(true)}
                 className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 flex items-center gap-2 shadow-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                  <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
                 </svg>
                 Add Staff to Week
               </button>
 
-              {currentWeek.staff.length > 0 && (
+              {selectedStaffToRemove.size > 0 && (
+                <button
+                  onClick={handleRemoveSelectedStaff}
+                  className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 flex items-center gap-2 shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  Remove Selected ({selectedStaffToRemove.size})
+                </button>
+              )}
+
+              {currentWeek.staff.length > 0 && selectedStaffToRemove.size === 0 && (
                 <button
                   onClick={() => setShowRemoveAllConfirm(true)}
                   className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 flex items-center gap-2 shadow-sm"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2H6z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   Remove All Staff
                 </button>
@@ -632,19 +663,24 @@ export default function HomePage() {
                   </div>
 
                   {getAvailableStaff().length > 0 && (
-                    <div className="flex justify-end mb-4">
+                    <div className="flex items-center mb-4 border-b pb-3">
                       <button
                         onClick={selectedStaff.size === getAvailableStaff().length ? handleDeselectAllStaff : handleSelectAllStaff}
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           {selectedStaff.size === getAvailableStaff().length ? (
                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                           ) : (
                             <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
                           )}
                         </svg>
-                        {selectedStaff.size === getAvailableStaff().length ? 'Deselect All' : 'Select All'}
+                        <span className="font-medium">
+                          {selectedStaff.size === getAvailableStaff().length ? 'Deselect All Staff' : 'Select All Staff'}
+                        </span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          ({getAvailableStaff().length} available)
+                        </span>
                       </button>
                     </div>
                   )}
@@ -664,13 +700,29 @@ export default function HomePage() {
                                 ? 'bg-blue-50 border-blue-500'
                                 : 'hover:bg-gray-50 border-gray-200'
                             }`}
-                            onClick={() => toggleStaffSelection(staff.id)}
+                            onClick={() => setSelectedStaff(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(staff.id)) {
+                                newSet.delete(staff.id);
+                              } else {
+                                newSet.add(staff.id);
+                              }
+                              return newSet;
+                            })}
                           >
                             <div className="flex items-center gap-3">
                               <input
                                 type="checkbox"
                                 checked={selectedStaff.has(staff.id)}
-                                onChange={() => toggleStaffSelection(staff.id)}
+                                onChange={() => setSelectedStaff(prev => {
+                                  const newSet = new Set(prev);
+                                  if (newSet.has(staff.id)) {
+                                    newSet.delete(staff.id);
+                                  } else {
+                                    newSet.add(staff.id);
+                                  }
+                                  return newSet;
+                                })}
                                 className="h-4 w-4 text-blue-600"
                               />
                               <div>
@@ -717,7 +769,7 @@ export default function HomePage() {
                   <div className="text-center">
                     <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Remove All Staff</h3>
