@@ -49,6 +49,7 @@ export default function HomePage() {
   const [staffList, setStaffList] = useState([]);
   const [remarks, setRemarks] = useState([]);
   const [activeTab, setActiveTab] = useState('rota');
+  const [comments, setComments] = useState({});  // Format: { 'weekId-staffId-dayIndex': { text: 'comment', timestamp: 'date' } }
 
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
@@ -60,6 +61,10 @@ export default function HomePage() {
     const storedRemarks = localStorage.getItem('allRemarks');
     if (storedRemarks) {
       setRemarks(JSON.parse(storedRemarks));
+    }
+    const savedComments = localStorage.getItem('rota-comments');
+    if (savedComments) {
+      setComments(JSON.parse(savedComments));
     }
   }, []);
 
@@ -74,6 +79,10 @@ export default function HomePage() {
   useEffect(() => {
     localStorage.setItem('allRemarks', JSON.stringify(remarks));
   }, [remarks]);
+
+  useEffect(() => {
+    localStorage.setItem('rota-comments', JSON.stringify(comments));
+  }, [comments]);
 
   const handleAddStaff = (newStaffData) => {
     const staffId = generateUniqueKey();
@@ -176,6 +185,29 @@ export default function HomePage() {
   const handleRemoveRemark = (remarkId) => {
     setRemarks((prev) => prev.filter((r) => r.id !== remarkId));
   };
+
+  const handleAddComment = useCallback((weekId, staffId, dayIndex, comment) => {
+    setComments(prevComments => {
+      const key = `${weekId}-${staffId}-${dayIndex}`;
+      return {
+        ...prevComments,
+        [key]: {
+          id: generateUniqueKey(),
+          text: comment,
+          timestamp: new Date().toISOString(),
+        }
+      };
+    });
+  }, []);
+
+  const handleDeleteComment = useCallback((weekId, staffId, dayIndex) => {
+    setComments(prevComments => {
+      const key = `${weekId}-${staffId}-${dayIndex}`;
+      const newComments = { ...prevComments };
+      delete newComments[key];
+      return newComments;
+    });
+  }, []);
 
   const addWeek = () => {
     const newWeekId = generateUniqueKey();
@@ -294,155 +326,161 @@ export default function HomePage() {
           </div>
 
           {/* Table section */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200">
-              <thead className="sticky top-0 z-30 bg-white">
-                <tr className="bg-gray-100">
-                  <th className="px-6 py-3 border sticky left-0 bg-gray-100 z-10">
-                    STAFF
-                  </th>
-                  {currentWeek.days.map((day, dayIndex) => (
-                    <th key={dayIndex} className="px-6 py-3 border">
-                      {new Date(day).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        weekday: 'short',
-                      })}
+          <div className="mt-4 overflow-x-auto">
+            <div className="max-h-[70vh] overflow-y-auto">
+              <table className="min-w-full border-collapse border relative">
+                <thead className="bg-gray-50 sticky top-0 z-20">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-b">
+                      Staff Member
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {currentWeek.staff.map((staff) => {
-                  const rowKey = `row-${currentWeek.id}-${staff.id}`;
-                  return (
-                    <tr key={rowKey}>
-                      <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r">
-                        <div className="flex items-center justify-between">
-                          <span>{staff.name}</span>
-                          <button
-                            onClick={() => handleRemoveStaffFromWeek(staff.id)}
-                            className="text-red-500 hover:text-red-700 ml-2"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </td>
-                      {currentWeek.days.map((day, dayIndex) => {
-                        const cellKey = `cell-${currentWeek.id}-${staff.id}-${dayIndex}`;
-                        return (
-                          <td
-                            key={cellKey}
-                            className={`px-6 py-4 whitespace-nowrap border ${
-                              dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
-                            }`}
-                          >
-                            <ShiftSlot
-                              staffId={staff.originalStaffId}
-                              dayIndex={dayIndex}
-                              shift={staff.shifts[dayIndex] || 'OFF'}
-                              onShiftsChange={handleShiftsChange.bind(
-                                null,
-                                currentWeek.id
-                              )}
-                              staffShifts={currentWeek.staff.filter(
-                                (s) =>
-                                  s.originalStaffId === staff.originalStaffId &&
-                                  s.id === staff.id
-                              )}
-                              onAddRemark={handleAddRemark.bind(
-                                null,
-                                currentWeek.id
-                              )}
-                              onRemoveRemark={handleRemoveRemark}
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
+                    {currentWeek.days.map((day, index) => (
+                      <th
+                        key={index}
+                        className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b ${
+                          index === 5 || index === 6 ? 'bg-gray-100' : 'bg-gray-50'
+                        }`}
+                      >
+                        {new Date(day).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          weekday: 'short',
+                        })}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentWeek.staff.map((staff) => {
+                    const rowKey = `row-${currentWeek.id}-${staff.id}`;
+                    return (
+                      <tr key={rowKey}>
+                        <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r">
+                          <div className="flex items-center justify-between">
+                            <span>{staff.name}</span>
+                            <button
+                              onClick={() => handleRemoveStaffFromWeek(staff.id)}
+                              className="text-red-500 hover:text-red-700 ml-2"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </td>
+                        {currentWeek.days.map((day, dayIndex) => {
+                          const cellKey = `cell-${currentWeek.id}-${staff.id}-${dayIndex}`;
+                          return (
+                            <td
+                              key={cellKey}
+                              className={`px-6 py-4 whitespace-nowrap border ${
+                                dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
+                              }`}
+                            >
+                              <ShiftSlot
+                                staffId={staff.originalStaffId}
+                                dayIndex={dayIndex}
+                                shift={staff.shifts[dayIndex] || 'OFF'}
+                                onShiftsChange={handleShiftsChange.bind(
+                                  null,
+                                  currentWeek.id
+                                )}
+                                staffShifts={currentWeek.staff.filter(
+                                  (s) =>
+                                    s.originalStaffId === staff.originalStaffId &&
+                                    s.id === staff.id
+                                )}
+                                comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
+                                onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
+                                onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
+                                weekId={currentWeek.id}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Week date range display */}
+            <div className="mt-4 text-left">
+              <p className="text-lg font-medium">
+                Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate), 'dd/MM/yy')} to{' '}
+                {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yy')}
+              </p>
+            </div>
+
+            {/* Add Staff to Week button */}
+            <div className="mt-4 mb-4">
+              <button
+                onClick={() => {
+                  const currentWeek = weeks[currentWeekIndex];
+                  const availableStaff = allStaff.filter(
+                    (staff) => !currentWeek.staff.some((s) => s.originalStaffId === staff.id)
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
 
-          {/* Week date range display */}
-          <div className="mt-4 text-left">
-            <p className="text-lg font-medium">
-              Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate), 'dd/MM/yy')} to{' '}
-              {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yy')}
-            </p>
-          </div>
+                  if (availableStaff.length === 0) {
+                    alert('No available staff to add');
+                    return;
+                  }
 
-          {/* Add Staff to Week button */}
-          <div className="mt-4 mb-4">
-            <button
-              onClick={() => {
-                const currentWeek = weeks[currentWeekIndex];
-                const availableStaff = allStaff.filter(
-                  (staff) => !currentWeek.staff.some((s) => s.originalStaffId === staff.id)
-                );
+                  // Show modal or dropdown with available staff
+                  const staffSelect = document.createElement('select');
+                  staffSelect.className = 'border rounded p-2 mr-2';
+                  availableStaff.forEach((staff) => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (${staff.role || 'No role'})`;
+                    staffSelect.appendChild(option);
+                  });
 
-                if (availableStaff.length === 0) {
-                  alert('No available staff to add');
-                  return;
-                }
+                  const dialog = document.createElement('dialog');
+                  dialog.className = 'p-4 rounded shadow-lg';
 
-                // Show modal or dropdown with available staff
-                const staffSelect = document.createElement('select');
-                staffSelect.className = 'border rounded p-2 mr-2';
-                availableStaff.forEach((staff) => {
-                  const option = document.createElement('option');
-                  option.value = staff.id;
-                  option.textContent = `${staff.name} (${staff.role || 'No role'})`;
-                  staffSelect.appendChild(option);
-                });
+                  const form = document.createElement('form');
+                  form.method = 'dialog';
 
-                const dialog = document.createElement('dialog');
-                dialog.className = 'p-4 rounded shadow-lg';
+                  const title = document.createElement('h3');
+                  title.textContent = 'Add Staff to Week';
+                  title.className = 'text-lg font-bold mb-4';
 
-                const form = document.createElement('form');
-                form.method = 'dialog';
+                  const buttonContainer = document.createElement('div');
+                  buttonContainer.className = 'flex justify-end gap-2 mt-4';
 
-                const title = document.createElement('h3');
-                title.textContent = 'Add Staff to Week';
-                title.className = 'text-lg font-bold mb-4';
+                  const addButton = document.createElement('button');
+                  addButton.textContent = 'Add';
+                  addButton.className = 'bg-blue-500 text-white px-4 py-2 rounded';
+                  addButton.onclick = () => {
+                    handleAddStaffToWeek(staffSelect.value);
+                    dialog.close();
+                  };
 
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'flex justify-end gap-2 mt-4';
+                  const cancelButton = document.createElement('button');
+                  cancelButton.textContent = 'Cancel';
+                  cancelButton.className = 'bg-gray-300 px-4 py-2 rounded';
+                  cancelButton.onclick = () => dialog.close();
 
-                const addButton = document.createElement('button');
-                addButton.textContent = 'Add';
-                addButton.className = 'bg-blue-500 text-white px-4 py-2 rounded';
-                addButton.onclick = () => {
-                  handleAddStaffToWeek(staffSelect.value);
-                  dialog.close();
-                };
+                  buttonContainer.appendChild(cancelButton);
+                  buttonContainer.appendChild(addButton);
 
-                const cancelButton = document.createElement('button');
-                cancelButton.textContent = 'Cancel';
-                cancelButton.className = 'bg-gray-300 px-4 py-2 rounded';
-                cancelButton.onclick = () => dialog.close();
+                  form.appendChild(title);
+                  form.appendChild(staffSelect);
+                  form.appendChild(buttonContainer);
+                  dialog.appendChild(form);
 
-                buttonContainer.appendChild(cancelButton);
-                buttonContainer.appendChild(addButton);
+                  document.body.appendChild(dialog);
+                  dialog.showModal();
 
-                form.appendChild(title);
-                form.appendChild(staffSelect);
-                form.appendChild(buttonContainer);
-                dialog.appendChild(form);
-
-                document.body.appendChild(dialog);
-                dialog.showModal();
-
-                dialog.addEventListener('close', () => {
-                  document.body.removeChild(dialog);
-                });
-              }}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            >
-              Add Staff to Week
-            </button>
+                  dialog.addEventListener('close', () => {
+                    document.body.removeChild(dialog);
+                  });
+                }}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Add Staff to Week
+              </button>
+            </div>
           </div>
         </div>
       )}
