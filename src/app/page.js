@@ -50,6 +50,9 @@ export default function HomePage() {
   const [remarks, setRemarks] = useState([]);
   const [activeTab, setActiveTab] = useState('rota');
   const [comments, setComments] = useState({});  // Format: { 'weekId-staffId-dayIndex': { text: 'comment', timestamp: 'date' } }
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(new Set());
+  const [showRemoveAllConfirm, setShowRemoveAllConfirm] = useState(false);
 
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
@@ -209,21 +212,37 @@ export default function HomePage() {
     });
   }, []);
 
-  const addWeek = () => {
+  const addWeek = (direction = 'next') => {
     const newWeekId = generateUniqueKey();
-    const lastWeek = weeks[weeks.length - 1];
+    const lastWeek = weeks[direction === 'next' ? weeks.length - 1 : 0];
     const newStartDate = new Date(lastWeek.startDate);
-    newStartDate.setDate(newStartDate.getDate() + 7);
-
+    
+    // Add or subtract 7 days based on direction
+    newStartDate.setDate(newStartDate.getDate() + (direction === 'next' ? 7 : -7));
+    
     const newWeek = {
       id: newWeekId,
-      startDate: newStartDate.toISOString().split('T')[0],
-      staff: [], // Start with empty staff list
-      days: generateWeekDays(newStartDate.toISOString().split('T')[0]),
+      startDate: newStartDate.toISOString(),
+      staff: [],
+      days: Array.from({ length: 7 }, (_, i) => {
+        const day = new Date(newStartDate);
+        day.setDate(day.getDate() + i);
+        return day.toISOString();
+      }),
     };
 
-    setWeeks((prev) => [...prev, newWeek]);
-    setCurrentWeekIndex((prev) => prev + 1);
+    setWeeks(prevWeeks => {
+      if (direction === 'next') {
+        return [...prevWeeks, newWeek];
+      } else {
+        return [newWeek, ...prevWeeks];
+      }
+    });
+
+    // If adding a previous week, we need to adjust currentWeekIndex
+    if (direction === 'previous') {
+      setCurrentWeekIndex(prev => prev + 1);
+    }
   };
 
   // Function to handle moving to the previous week
@@ -268,6 +287,125 @@ export default function HomePage() {
     setWeeks((prevWeeks) => prevWeeks.filter((week) => week.id !== weekId));
   };
 
+  const getCurrentWeekIndex = useCallback(() => {
+    const today = new Date();
+    return weeks.findIndex(week => {
+      const weekStart = new Date(week.startDate);
+      const weekEnd = new Date(week.days[6]);
+      return today >= weekStart && today <= weekEnd;
+    });
+  }, [weeks]);
+
+  const handleGoToCurrentWeek = () => {
+    const currentWeekIdx = getCurrentWeekIndex();
+    if (currentWeekIdx !== -1) {
+      setCurrentWeekIndex(currentWeekIdx);
+    } else {
+      // If current week doesn't exist, create it
+      const lastWeek = weeks[weeks.length - 1];
+      const lastWeekEnd = new Date(lastWeek.days[6]);
+      const today = new Date();
+      
+      // If today is after the last week, add weeks until we reach current week
+      if (today > lastWeekEnd) {
+        let tempDate = new Date(lastWeek.startDate);
+        while (tempDate <= today) {
+          tempDate.setDate(tempDate.getDate() + 7);
+          addWeek('next');
+        }
+        setCurrentWeekIndex(weeks.length); // Set to the newly added week
+      } else {
+        // If today is before the first week, add weeks until we reach current week
+        const firstWeek = weeks[0];
+        const firstWeekStart = new Date(firstWeek.startDate);
+        if (today < firstWeekStart) {
+          let tempDate = new Date(firstWeek.startDate);
+          let weeksToAdd = 0;
+          while (tempDate > today) {
+            tempDate.setDate(tempDate.getDate() - 7);
+            weeksToAdd++;
+          }
+          for (let i = 0; i < weeksToAdd; i++) {
+            addWeek('previous');
+          }
+          setCurrentWeekIndex(weeksToAdd);
+        }
+      }
+    }
+  };
+
+  const handleBulkAddStaff = () => {
+    const currentWeek = weeks[currentWeekIndex];
+    const staffToAdd = Array.from(selectedStaff).map(staffId => {
+      const staffMember = staffList.find(s => s.id === staffId);
+      return {
+        id: generateUniqueKey(),
+        originalStaffId: staffId,
+        name: staffMember.name,
+        role: staffMember.role,
+        shifts: Array(7).fill('OFF')
+      };
+    });
+
+    setWeeks(prevWeeks => {
+      return prevWeeks.map(week => {
+        if (week.id === currentWeek.id) {
+          return {
+            ...week,
+            staff: [...week.staff, ...staffToAdd]
+          };
+        }
+        return week;
+      });
+    });
+
+    setSelectedStaff(new Set());
+    setShowBulkAddModal(false);
+  };
+
+  const toggleStaffSelection = (staffId) => {
+    setSelectedStaff(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(staffId)) {
+        newSet.delete(staffId);
+      } else {
+        newSet.add(staffId);
+      }
+      return newSet;
+    });
+  };
+
+  const getAvailableStaff = () => {
+    const currentWeek = weeks[currentWeekIndex];
+    return staffList.filter(
+      staff => !currentWeek.staff.some(s => s.originalStaffId === staff.id)
+    );
+  };
+
+  const handleRemoveAllStaff = () => {
+    setWeeks(prevWeeks => {
+      return prevWeeks.map(week => {
+        if (week.id === currentWeek.id) {
+          return {
+            ...week,
+            staff: []
+          };
+        }
+        return week;
+      });
+    });
+    setShowRemoveAllConfirm(false);
+  };
+
+  const handleSelectAllStaff = () => {
+    const availableStaff = getAvailableStaff();
+    setSelectedStaff(new Set(availableStaff.map(staff => staff.id)));
+  };
+
+  const handleDeselectAllStaff = () => {
+    setSelectedStaff(new Set());
+  };
+
   // Ensure we always have a valid currentWeek
   const currentWeek = weeks[currentWeekIndex] || initialWeek;
 
@@ -305,50 +443,63 @@ export default function HomePage() {
           {/* Week Navigation Controls */}
           <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setCurrentWeekIndex(prev => Math.max(0, prev - 1))}
-                disabled={currentWeekIndex === 0}
-                className={`px-4 py-2 rounded ${
-                  currentWeekIndex === 0
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                }`}
-              >
-                ← Previous Week
-              </button>
-
-              <button
-                onClick={() => setCurrentWeekIndex(prev => prev + 1)}
-                disabled={currentWeekIndex >= weeks.length - 1}
-                className={`px-4 py-2 rounded flex items-center gap-2 ${
-                  currentWeekIndex >= weeks.length - 1
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                }`}
-              >
-                Next Week →
-              </button>
-
-              {currentWeekIndex >= weeks.length - 1 && (
+              {currentWeekIndex === 0 ? (
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={addWeek}
+                    onClick={() => addWeek('previous')}
                     className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-2"
                   >
-                    <span>+ Add New Week</span>
+                    <span>+ Add Previous Week</span>
                   </button>
-                  <span className="text-amber-600 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    Add a new week to continue
-                  </span>
                 </div>
+              ) : (
+                <button
+                  onClick={() => setCurrentWeekIndex(prev => Math.max(0, prev - 1))}
+                  className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  ← Previous Week
+                </button>
+              )}
+
+              <button
+                onClick={handleGoToCurrentWeek}
+                className="px-4 py-2 rounded bg-purple-500 text-white hover:bg-purple-600 flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                </svg>
+                Current Week
+              </button>
+
+              {currentWeekIndex >= weeks.length - 1 ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => addWeek('next')}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-2"
+                  >
+                    <span>+ Add Next Week</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setCurrentWeekIndex(prev => prev + 1)}
+                  className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  Next Week →
+                </button>
               )}
             </div>
 
-            <div className="text-gray-600">
-              Week {currentWeekIndex + 1} of {weeks.length}
+            <div className="text-gray-600 flex items-center gap-4">
+              <span>Week {currentWeekIndex + 1} of {weeks.length}</span>
+              {currentWeekIndex === weeks.length - 1 && (
+                <span className="text-amber-600 flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  Add a new week to continue
+                </span>
+              )}
             </div>
           </div>
 
@@ -439,75 +590,158 @@ export default function HomePage() {
             </div>
 
             {/* Add Staff to Week button */}
-            <div className="mt-4 mb-4">
+            <div className="mt-4 mb-4 flex gap-4">
               <button
-                onClick={() => {
-                  const currentWeek = weeks[currentWeekIndex];
-                  const availableStaff = allStaff.filter(
-                    (staff) => !currentWeek.staff.some((s) => s.originalStaffId === staff.id)
-                  );
-
-                  if (availableStaff.length === 0) {
-                    alert('No available staff to add');
-                    return;
-                  }
-
-                  // Show modal or dropdown with available staff
-                  const staffSelect = document.createElement('select');
-                  staffSelect.className = 'border rounded p-2 mr-2';
-                  availableStaff.forEach((staff) => {
-                    const option = document.createElement('option');
-                    option.value = staff.id;
-                    option.textContent = `${staff.name} (${staff.role || 'No role'})`;
-                    staffSelect.appendChild(option);
-                  });
-
-                  const dialog = document.createElement('dialog');
-                  dialog.className = 'p-4 rounded shadow-lg';
-
-                  const form = document.createElement('form');
-                  form.method = 'dialog';
-
-                  const title = document.createElement('h3');
-                  title.textContent = 'Add Staff to Week';
-                  title.className = 'text-lg font-bold mb-4';
-
-                  const buttonContainer = document.createElement('div');
-                  buttonContainer.className = 'flex justify-end gap-2 mt-4';
-
-                  const addButton = document.createElement('button');
-                  addButton.textContent = 'Add';
-                  addButton.className = 'bg-blue-500 text-white px-4 py-2 rounded';
-                  addButton.onclick = () => {
-                    handleAddStaffToWeek(staffSelect.value);
-                    dialog.close();
-                  };
-
-                  const cancelButton = document.createElement('button');
-                  cancelButton.textContent = 'Cancel';
-                  cancelButton.className = 'bg-gray-300 px-4 py-2 rounded';
-                  cancelButton.onclick = () => dialog.close();
-
-                  buttonContainer.appendChild(cancelButton);
-                  buttonContainer.appendChild(addButton);
-
-                  form.appendChild(title);
-                  form.appendChild(staffSelect);
-                  form.appendChild(buttonContainer);
-                  dialog.appendChild(form);
-
-                  document.body.appendChild(dialog);
-                  dialog.showModal();
-
-                  dialog.addEventListener('close', () => {
-                    document.body.removeChild(dialog);
-                  });
-                }}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                onClick={() => setShowBulkAddModal(true)}
+                className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 flex items-center gap-2 shadow-sm"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                </svg>
                 Add Staff to Week
               </button>
+
+              {currentWeek.staff.length > 0 && (
+                <button
+                  onClick={() => setShowRemoveAllConfirm(true)}
+                  className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 flex items-center gap-2 shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2H6z" clipRule="evenodd" />
+                  </svg>
+                  Remove All Staff
+                </button>
+              )}
             </div>
+
+            {/* Bulk Add Staff Modal */}
+            {showBulkAddModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Add Staff to Week</h2>
+                    <button
+                      onClick={() => {
+                        setShowBulkAddModal(false);
+                        setSelectedStaff(new Set());
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {getAvailableStaff().length > 0 && (
+                    <div className="flex justify-end mb-4">
+                      <button
+                        onClick={selectedStaff.size === getAvailableStaff().length ? handleDeselectAllStaff : handleSelectAllStaff}
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          {selectedStaff.size === getAvailableStaff().length ? (
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          ) : (
+                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                          )}
+                        </svg>
+                        {selectedStaff.size === getAvailableStaff().length ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex-1 overflow-y-auto mb-4">
+                    {getAvailableStaff().length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">
+                        All staff members have been added to this week.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {getAvailableStaff().map(staff => (
+                          <div
+                            key={staff.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                              selectedStaff.has(staff.id)
+                                ? 'bg-blue-50 border-blue-500'
+                                : 'hover:bg-gray-50 border-gray-200'
+                            }`}
+                            onClick={() => toggleStaffSelection(staff.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedStaff.has(staff.id)}
+                                onChange={() => toggleStaffSelection(staff.id)}
+                                className="h-4 w-4 text-blue-600"
+                              />
+                              <div>
+                                <div className="font-medium">{staff.name}</div>
+                                <div className="text-sm text-gray-500">{staff.role}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <button
+                      onClick={() => {
+                        setShowBulkAddModal(false);
+                        setSelectedStaff(new Set());
+                      }}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleBulkAddStaff}
+                      disabled={selectedStaff.size === 0}
+                      className={`px-4 py-2 rounded ${
+                        selectedStaff.size === 0
+                          ? 'bg-gray-300 cursor-not-allowed'
+                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                      }`}
+                    >
+                      Add Selected Staff ({selectedStaff.size})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Remove All Confirmation Modal */}
+            {showRemoveAllConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                  <div className="text-center">
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Remove All Staff</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Are you sure you want to remove all staff from this week? This action cannot be undone.
+                    </p>
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={() => setShowRemoveAllConfirm(false)}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleRemoveAllStaff}
+                        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Yes, Remove All
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
