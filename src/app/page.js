@@ -302,27 +302,62 @@ export default function HomePage() {
       {/* Rota Tab Content */}
       {activeTab === 'rota' && (
         <div>
-          <div className="flex justify-between items-center mb-6">
+          {/* Week Navigation Controls */}
+          <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow">
             <div className="flex items-center gap-4">
               <button
-                onClick={handlePreviousWeek}
-                className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+                onClick={() => setCurrentWeekIndex(prev => Math.max(0, prev - 1))}
+                disabled={currentWeekIndex === 0}
+                className={`px-4 py-2 rounded ${
+                  currentWeekIndex === 0
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
               >
-                ←
+                ← Previous Week
               </button>
+
               <button
-                onClick={handleNextWeek}
-                className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+                onClick={() => setCurrentWeekIndex(prev => prev + 1)}
+                disabled={currentWeekIndex >= weeks.length - 1}
+                className={`px-4 py-2 rounded flex items-center gap-2 ${
+                  currentWeekIndex >= weeks.length - 1
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
               >
-                →
+                Next Week →
               </button>
-              <button
-                onClick={addWeek}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Add Week
-              </button>
+
+              {currentWeekIndex >= weeks.length - 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={addWeek}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-2"
+                  >
+                    <span>+ Add New Week</span>
+                  </button>
+                  <span className="text-amber-600 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Add a new week to continue
+                  </span>
+                </div>
+              )}
             </div>
+
+            <div className="text-gray-600">
+              Week {currentWeekIndex + 1} of {weeks.length}
+            </div>
+          </div>
+
+          {/* Current Week Info */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <h2 className="text-xl font-semibold mb-2">
+              Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate))} to{' '}
+              {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]))}
+            </h2>
           </div>
 
           {/* Table section */}
@@ -401,14 +436,6 @@ export default function HomePage() {
                   })}
                 </tbody>
               </table>
-            </div>
-
-            {/* Week date range display */}
-            <div className="mt-4 text-left">
-              <p className="text-lg font-medium">
-                Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate), 'dd/MM/yy')} to{' '}
-                {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yy')}
-              </p>
             </div>
 
             {/* Add Staff to Week button */}
