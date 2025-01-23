@@ -1,5 +1,6 @@
 @import 'react-time-picker/dist/TimePicker.css';
 @import 'react-clock/dist/Clock.css';
+@import 'react-datepicker/dist/react-datepicker.css';
 
 
 /* globals.css */
@@ -52,4 +53,56 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 150px; /* Adjust based on design requirements */
+}
+
+/* Date Picker Styles */
+.react-datepicker {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  background-color: #fff;
+}
+
+.react-datepicker__header {
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #ccc;
+  padding: 8px;
+}
+
+.react-datepicker__current-month {
+  font-weight: bold;
+}
+
+.react-datepicker__navigation {
+  cursor: pointer;
+}
+
+.react-datepicker__day-names {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 4px;
+}
+
+.react-datepicker__day {
+  cursor: pointer;
+  padding: 4px;
+  text-align: center;
+}
+
+.react-datepicker__day:hover {
+  background-color: #ececec;
+}
+
+.react-datepicker__day--selected {
+  background-color: #6f4cff;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.react-datepicker__day--keyboard-selected {
+  background-color: #8b6bff;
+  color: #fff;
+  border-radius: 4px;
 }
