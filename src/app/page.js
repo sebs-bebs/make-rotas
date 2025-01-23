@@ -447,7 +447,7 @@ export default function HomePage() {
     const currentWeek = weeks[currentWeekIndex];
     const startDate = new Date(currentWeek.days[0]);
     const endDate = new Date(currentWeek.days[6]);
-    const filename = `rota-${formatDateWithAbbreviatedMonth(startDate)}-to-${formatDateWithAbbreviatedMonth(endDate)}.png`;
+    const filename = `rota-${formatDateWithAbbreviatedMonth(startDate, 'dd/MM/yyyy')} to ${formatDateWithAbbreviatedMonth(endDate, 'dd/MM/yyyy')}.png`;
     saveAsImage('rota-table', filename);
   };
 
@@ -545,7 +545,8 @@ export default function HomePage() {
 
           {/* Current Week Info */}
           <div className="text-lg font-semibold text-gray-800">
-            Week of {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[0]))}
+            Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[0]), 'dd/MM/yyyy')} to{' '}
+            {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yyyy')}
           </div>
 
           {/* Table section */}
