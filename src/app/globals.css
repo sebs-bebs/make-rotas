@@ -106,3 +106,24 @@ body {
   color: #fff;
   border-radius: 4px;
 }
+
+/* Custom tooltip styles */
+[title] {
+  position: relative;
+  cursor: help;
+}
+
+[title]:hover::before {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: theme('colors.gray.900');
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  z-index: 50;
+  margin-bottom: 0.25rem;
+}
