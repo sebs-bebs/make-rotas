@@ -72,11 +72,20 @@ export default function StaffManagement({ staffList, onAddStaff, onRemoveStaff }
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredStaff.map((staff) => (
               <tr key={staff.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {staff.name}
+                <td className="px-6 py-4 whitespace-nowrap relative group">
+                  <div className="max-w-[200px] truncate">
+                    {staff.name}
+                  </div>
+                  <div className="absolute z-50 invisible group-hover:visible bg-gray-900 text-white text-sm rounded px-2 py-1 -mt-1 
+                    whitespace-normal max-w-xs break-words left-6 transform -translate-y-full opacity-0 group-hover:opacity-100 
+                    transition-opacity duration-200">
+                    {staff.name}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {staff.role || '-'}
+                  <div className="max-w-[150px] truncate">
+                    {staff.role || '-'}
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex gap-1">
