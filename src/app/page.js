@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ShiftSlot from '../components/ShiftSlot';
 import ShiftRemarks from '../components/ShiftRemarks';
-import StaffInput from '../components/StaffInput';
 import Button from '../components/Button';
+import StaffManagement from '../components/StaffManagement';
 import { formatDateWithAbbreviatedMonth } from '../utils/dateFormatter';
 import { saveAsImage } from '../utils/saveAsImage';
 
@@ -25,6 +25,10 @@ const generateWeekDays = (startDate) => {
   return days;
 };
 
+const generateUniqueKey = () => {
+  return Date.now().toString();
+};
+
 export default function HomePage() {
   const [weeks, setWeeks] = useState([
     {
@@ -35,13 +39,16 @@ export default function HomePage() {
     },
   ]);
   const [staffList, setStaffList] = useState([]);
+  const [allStaff, setAllStaff] = useState([]);
   const [remarks, setRemarks] = useState([]);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
 
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
     if (storedStaffList) {
-      setStaffList(JSON.parse(storedStaffList));
+      const parsedStaffList = JSON.parse(storedStaffList);
+      setStaffList(parsedStaffList);
+      setAllStaff(parsedStaffList);
     }
     const storedRemarks = localStorage.getItem('allRemarks');
     if (storedRemarks) {
@@ -54,45 +61,84 @@ export default function HomePage() {
   }, [staffList]);
 
   useEffect(() => {
+    localStorage.setItem('allStaff', JSON.stringify(allStaff));
+  }, [allStaff]);
+
+  useEffect(() => {
     localStorage.setItem('allRemarks', JSON.stringify(remarks));
   }, [remarks]);
 
-  const handleAddStaff = (newName) => {
-    if (!newName || !newName.trim()) {
-      alert('Please enter a valid name.');
-      return;
-    }
-
-    const exists = staffList.some(
-      (person) => person.name.toLowerCase() === newName.toLowerCase().trim()
-    );
-    if (exists) {
-      alert('Staff member already exists');
-      return;
-    }
-
+  const handleAddStaff = (newStaffData) => {
     const newStaff = {
-      id: Date.now().toString(),
-      name: newName.trim(),
+      id: generateUniqueKey(),
+      name: newStaffData.firstName + ' ' + newStaffData.lastName,
+      role: newStaffData.role,
+      email: newStaffData.email,
+      phone: newStaffData.phone,
+      defaultAvailability: newStaffData.defaultAvailability,
+      isActive: newStaffData.isActive,
       shifts: Array(7).fill('OFF'),
     };
 
+    setAllStaff((prev) => [...prev, newStaff]);
     setStaffList((prev) => [...prev, newStaff]);
+
     setWeeks((prevWeeks) =>
-      prevWeeks.map((week) => ({
-        ...week,
-        staff: [...week.staff, { ...newStaff, shifts: Array(7).fill('OFF') }],
-      }))
+      prevWeeks.map((week, index) => {
+        if (index === currentWeekIndex) {
+          return {
+            ...week,
+            staff: [...week.staff, { ...newStaff }],
+          };
+        }
+        return week;
+      })
     );
   };
 
   const handleRemoveStaff = (staffId) => {
     setStaffList((prev) => prev.filter((staff) => staff.id !== staffId));
+    setAllStaff((prev) => prev.filter((staff) => staff.id !== staffId));
+
     setWeeks((prevWeeks) =>
       prevWeeks.map((week) => ({
         ...week,
         staff: week.staff.filter((staff) => staff.id !== staffId),
       }))
+    );
+  };
+
+  const handleRemoveStaffFromWeek = (staffId) => {
+    setWeeks((prevWeeks) =>
+      prevWeeks.map((week, index) => {
+        if (index === currentWeekIndex) {
+          return {
+            ...week,
+            staff: week.staff.filter((staff) => staff.id !== staffId),
+          };
+        }
+        return week;
+      })
+    );
+  };
+
+  const handleAddStaffToWeek = (staffId) => {
+    const staffToAdd = allStaff.find((staff) => staff.id === staffId);
+    if (!staffToAdd) return;
+
+    setWeeks((prevWeeks) =>
+      prevWeeks.map((week, index) => {
+        if (index === currentWeekIndex) {
+          // Only add if staff is not already in the week
+          if (!week.staff.some((s) => s.id === staffId)) {
+            return {
+              ...week,
+              staff: [...week.staff, { ...staffToAdd, shifts: Array(7).fill('OFF') }],
+            };
+          }
+        }
+        return week;
+      })
     );
   };
 
@@ -197,9 +243,11 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="flex gap-4 mb-6">
-        <StaffInput onAddStaff={handleAddStaff} />
-      </div>
+      <StaffManagement
+        staffList={staffList}
+        onAddStaff={handleAddStaff}
+        onRemoveStaff={handleRemoveStaff}
+      />
 
       <div className="mb-4">
         <Button
@@ -264,10 +312,10 @@ export default function HomePage() {
                       <div className="flex items-center justify-between">
                         <span>{staff.name}</span>
                         <Button
-                          onClick={() => handleRemoveStaff(staff.id)}
+                          onClick={() => handleRemoveStaffFromWeek(staff.id)}
                           className="text-red-500 hover:underline text-xs"
                         >
-                          Remove
+                          Remove from Week
                         </Button>
                       </div>
                     </td>
@@ -315,6 +363,76 @@ export default function HomePage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="mt-4 mb-4">
+        <button
+          onClick={() => {
+            const currentWeek = weeks[currentWeekIndex];
+            const availableStaff = allStaff.filter(
+              (staff) => !currentWeek.staff.some((s) => s.id === staff.id)
+            );
+
+            if (availableStaff.length === 0) {
+              alert('No available staff to add');
+              return;
+            }
+
+            // Show modal or dropdown with available staff
+            const staffSelect = document.createElement('select');
+            staffSelect.className = 'border rounded p-2 mr-2';
+            availableStaff.forEach((staff) => {
+              const option = document.createElement('option');
+              option.value = staff.id;
+              option.textContent = `${staff.name} (${staff.role || 'No role'})`;
+              staffSelect.appendChild(option);
+            });
+
+            const dialog = document.createElement('dialog');
+            dialog.className = 'p-4 rounded shadow-lg';
+
+            const form = document.createElement('form');
+            form.method = 'dialog';
+
+            const title = document.createElement('h3');
+            title.textContent = 'Add Staff to Week';
+            title.className = 'text-lg font-bold mb-4';
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'flex justify-end gap-2 mt-4';
+
+            const addButton = document.createElement('button');
+            addButton.textContent = 'Add';
+            addButton.className = 'bg-blue-500 text-white px-4 py-2 rounded';
+            addButton.onclick = () => {
+              handleAddStaffToWeek(staffSelect.value);
+              dialog.close();
+            };
+
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.className = 'bg-gray-300 px-4 py-2 rounded';
+            cancelButton.onclick = () => dialog.close();
+
+            buttonContainer.appendChild(cancelButton);
+            buttonContainer.appendChild(addButton);
+
+            form.appendChild(title);
+            form.appendChild(staffSelect);
+            form.appendChild(buttonContainer);
+            dialog.appendChild(form);
+
+            document.body.appendChild(dialog);
+            dialog.showModal();
+
+            dialog.addEventListener('close', () => {
+              document.body.removeChild(dialog);
+            });
+          }}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+        >
+          Add Staff to Week
+        </button>
       </div>
     </div>
   );
