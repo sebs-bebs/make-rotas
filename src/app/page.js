@@ -6,6 +6,7 @@ import ShiftSlot from '../components/ShiftSlot';
 import ShiftRemarks from '../components/ShiftRemarks';
 import Button from '../components/Button';
 import StaffManagement from '../components/StaffManagement';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { formatDateWithAbbreviatedMonth } from '../utils/dateFormatter';
 import { saveAsImage } from '../utils/saveAsImage';
 
@@ -54,6 +55,9 @@ export default function HomePage() {
   const [selectedStaff, setSelectedStaff] = useState(new Set());
   const [selectedStaffToRemove, setSelectedStaffToRemove] = useState(new Set());
   const [showRemoveAllConfirm, setShowRemoveAllConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [staffToRemove, setStaffToRemove] = useState(null);
+  const [staffSearchTerm, setStaffSearchTerm] = useState('');
 
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
@@ -105,15 +109,25 @@ export default function HomePage() {
   };
 
   const handleRemoveStaff = (staffId) => {
-    setStaffList((prev) => prev.filter((staff) => staff.id !== staffId));
-    setAllStaff((prev) => prev.filter((staff) => staff.id !== staffId));
+    const staff = staffList.find(staff => staff.id === staffId);
+    setStaffToRemove(staff);
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmRemoveStaff = () => {
+    if (!staffToRemove) return;
+    
+    setStaffList((prev) => prev.filter((staff) => staff.id !== staffToRemove.id));
+    setAllStaff((prev) => prev.filter((staff) => staff.id !== staffToRemove.id));
 
     setWeeks((prevWeeks) =>
       prevWeeks.map((week) => ({
         ...week,
-        staff: week.staff.filter((staff) => staff.originalStaffId !== staffId),
+        staff: week.staff.filter((staff) => staff.originalStaffId !== staffToRemove.id),
       }))
     );
+
+    setStaffToRemove(null);
   };
 
   const handleAddStaffToWeek = (staffId) => {
@@ -393,8 +407,15 @@ export default function HomePage() {
 
   const getAvailableStaff = () => {
     const currentWeek = weeks[currentWeekIndex];
-    return staffList.filter(
+    const availableStaff = staffList.filter(
       staff => !currentWeek.staff.some(s => s.originalStaffId === staff.id)
+    );
+    
+    if (!staffSearchTerm) return availableStaff;
+    
+    return availableStaff.filter(staff => 
+      staff.name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+      (staff.role && staff.role.toLowerCase().includes(staffSearchTerm.toLowerCase()))
     );
   };
 
@@ -655,11 +676,36 @@ export default function HomePage() {
                       onClick={() => {
                         setShowBulkAddModal(false);
                         setSelectedStaff(new Set());
+                        setStaffSearchTerm('');
                       }}
                       className="text-gray-500 hover:text-gray-700"
                     >
                       ×
                     </button>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search staff by name or role..."
+                        value={staffSearchTerm}
+                        onChange={(e) => setStaffSearchTerm(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg pl-10"
+                      />
+                      <svg
+                        className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
                   </div>
 
                   {getAvailableStaff().length > 0 && (
@@ -808,6 +854,17 @@ export default function HomePage() {
           />
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showRemoveConfirm}
+        onClose={() => {
+          setShowRemoveConfirm(false);
+          setStaffToRemove(null);
+        }}
+        onConfirm={confirmRemoveStaff}
+        title="Remove Staff Member"
+        message={staffToRemove ? `Are you sure you want to remove ${staffToRemove.name} from the staff list?` : ''}
+      />
     </div>
   );
 }
