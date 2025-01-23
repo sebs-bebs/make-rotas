@@ -84,7 +84,6 @@ export default function ShiftSlot({
         return hours + minutes / 60;
     };
 
-
     return (
         <div className="flex flex-col gap-2 w-full">
              {/* Shift Display */}

@@ -12,6 +12,9 @@ module.exports = {
       colors: {
         primary: '#6f4cff', // Example brand color
       },
+      fontSize: {
+        'th-size': '1.25rem', // Custom text size for <th>
+      },
     },
   },
   plugins: [require("tailwind-scrollbar")],

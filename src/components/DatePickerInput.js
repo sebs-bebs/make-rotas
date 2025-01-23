@@ -60,7 +60,10 @@ const DatePickerInput = ({ label, selectedDate, onChange, minDate, maxDate }) =>
               minDate={minDate}
               maxDate={maxDate}
               inline
-              // You can customize additional DatePicker props here
+              showMonthDropdown
+              showYearDropdown
+              useShortMonthInDropdown
+              scrollableYearDropdown
             />
           </div>
         )}
