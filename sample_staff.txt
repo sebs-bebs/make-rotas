@@ -1,13 +1,18 @@
 Sarah,Johnson,Senior Nurse,sarah.j@hospital.com,07700900001
 Michael,Smith,Doctor,michael.s@hospital.com,07700900002
+Michael,Smith,Junior Doctor,michael.s2@hospital.com,07700900003
 Alexandrina-Victoria,Schleswig-Holstein-Sonderburg-Glücksburg,Senior Nurse,alex.v@hospital.com,07700900003
 James,Brown,Senior Doctor,james.b@hospital.com,07700900004
+James,Brown,Nurse Practitioner,james.b2@hospital.com,07700900005
 Christopher-Jonathan,Montgomery-Fitzgerald-Williamson,Nurse Practitioner,chris.m@hospital.com,07700900005
 David,Miller,Junior Doctor,david.m@hospital.com,07700900006
+David,Miller,Senior Doctor,david.m2@hospital.com,07700900007
 Elizabeth-Rose,Worthington-Blackwood-Richardson,Staff Nurse,elizabeth.w@hospital.com,07700900007
 John,Taylor,Consultant,john.t@hospital.com,07700900008
+John,Taylor,Staff Nurse,john.t2@hospital.com,07700900009
 Maximilian-Augustus,Van der Woodsen-Rothschild,Senior Nurse,max.v@hospital.com,07700900009
 Robert,Thomas,Doctor,robert.t@hospital.com,07700900010
+Robert,Thomas,Senior Nurse,robert.t2@hospital.com,07700900011
 Valentina-Isabella,Konstantinopolous-Martinez,Nurse,val.k@hospital.com,07700900011
 Daniel,Garcia,Junior Doctor,daniel.g@hospital.com,07700900012
 Bartholomew-Alexander,Huntington-Smythe-Windsor,Nurse Practitioner,bart.h@hospital.com,07700900013

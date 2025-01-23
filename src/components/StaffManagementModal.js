@@ -49,7 +49,7 @@ export default function StaffManagementModal({ isOpen, onClose, onAddStaff }) {
     const newStaff = {
       ...staffData,
       id: Date.now().toString(),
-      name: `${staffData.firstName.trim()} ${staffData.lastName.trim()}`,
+      name: `${staffData.firstName} ${staffData.lastName}${staffData.role ? ` (${staffData.role})` : ''}`,
     };
 
     onAddStaff(newStaff);
