@@ -144,7 +144,7 @@ export default function HomePage() {
               ...staffToAdd,
               id: weeklyStaffId,
               originalStaffId: staffId, // Keep track of the original staff ID
-              shifts: Array(7).fill('OFF'),
+              shifts: Array(7).fill(''),
             };
             return {
               ...week,
@@ -358,7 +358,7 @@ export default function HomePage() {
         originalStaffId: staffId,
         name: staffMember.name,
         role: staffMember.role,
-        shifts: Array(7).fill('OFF')
+        shifts: Array(7).fill('')
       };
     });
 
@@ -608,7 +608,7 @@ export default function HomePage() {
                               <ShiftSlot
                                 staffId={staff.originalStaffId}
                                 dayIndex={dayIndex}
-                                shift={staff.shifts[dayIndex] || 'OFF'}
+                                shift={staff.shifts[dayIndex] || ''}
                                 onShiftsChange={handleShiftsChange.bind(
                                   null,
                                   currentWeek.id

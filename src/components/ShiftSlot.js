@@ -19,6 +19,7 @@ export default function ShiftSlot({
     const [newComment, setNewComment] = useState('');
     const timeOptions = generateTimeOptions();
     const [isShiftAdded, setIsShiftAdded] = useState(shift !== 'OFF');
+    const [isOff, setIsOff] = useState(shift === 'OFF');
 
     // Update local state when shift prop changes
     useEffect(() => {
@@ -26,10 +27,17 @@ export default function ShiftSlot({
             const [start, end] = shift.split('-').map((s) => s.trim());
             setStartTime(start);
             setEndTime(end);
+            setIsOff(false);
             setIsShiftAdded(true);
+        } else if (shift === 'OFF') {
+            setStartTime('');
+            setEndTime('');
+            setIsOff(true);
+            setIsShiftAdded(false);
         } else {
             setStartTime('');
             setEndTime('');
+            setIsOff(false);
             setIsShiftAdded(false);
         }
     }, [shift]);
@@ -93,6 +101,24 @@ export default function ShiftSlot({
         setIsShiftAdded(false);
         setStartTime('');
         setEndTime('');
+    };
+
+    const handleOffChange = (event) => {
+        const checked = event.target.checked;
+        setIsOff(checked);
+        if (checked) {
+            const updateFn = (prevShifts) => {
+                if (!Array.isArray(prevShifts)) {
+                    prevShifts = Array(7).fill('OFF');
+                }
+                const newShifts = [...prevShifts];
+                newShifts[dayIndex] = 'OFF';
+                return newShifts;
+            };
+            onShiftsChange(weekId, staffId, dayIndex, updateFn);
+            setStartTime('');
+            setEndTime('');
+        }
     };
 
     const handleCommentSubmit = (e) => {
@@ -179,31 +205,44 @@ export default function ShiftSlot({
                     </div>
                 </div>
             ) : (
-                <div className="flex gap-2">
-                    <select
-                        value={startTime}
-                        onChange={handleStartTimeChange}
-                        className="p-1 text-sm border rounded"
-                    >
-                        <option value="">Start</option>
-                        {timeOptions.map((time) => (
-                            <option key={time} value={time}>
-                                {time}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={endTime}
-                        onChange={handleEndTimeChange}
-                        className="p-1 text-sm border rounded"
-                    >
-                        <option value="">End</option>
-                        {timeOptions.map((time) => (
-                            <option key={time} value={time}>
-                                {time}
-                            </option>
-                        ))}
-                    </select>
+                <div className="flex gap-2 items-center">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                            type="checkbox"
+                            checked={isOff}
+                            onChange={handleOffChange}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        OFF
+                    </label>
+                    {!isOff && (
+                        <div className="flex gap-2">
+                            <select
+                                value={startTime}
+                                onChange={handleStartTimeChange}
+                                className="p-1 text-sm border rounded"
+                            >
+                                <option value="">Start</option>
+                                {timeOptions.map((time) => (
+                                    <option key={time} value={time}>
+                                        {time}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                value={endTime}
+                                onChange={handleEndTimeChange}
+                                className="p-1 text-sm border rounded"
+                            >
+                                <option value="">End</option>
+                                {timeOptions.map((time) => (
+                                    <option key={time} value={time}>
+                                        {time}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
