@@ -26,22 +26,29 @@ const generateWeekDays = (startDate) => {
 };
 
 const generateUniqueKey = () => {
-  return Date.now().toString();
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Helper function to create a unique staff ID for a specific week
+const createWeeklyStaffId = (staffId, weekId) => {
+  return `staff-${staffId}-week-${weekId}`;
 };
 
 export default function HomePage() {
-  const [weeks, setWeeks] = useState([
-    {
-      id: 1,
-      startDate: new Date().toISOString().split('T')[0],
-      staff: [],
-      days: generateWeekDays(new Date().toISOString().split('T')[0]),
-    },
-  ]);
-  const [staffList, setStaffList] = useState([]);
-  const [allStaff, setAllStaff] = useState([]);
-  const [remarks, setRemarks] = useState([]);
+  // Initialize first week with current date
+  const initialWeek = {
+    id: generateUniqueKey(),
+    startDate: new Date().toISOString().split('T')[0],
+    staff: [],
+    days: generateWeekDays(new Date().toISOString().split('T')[0]),
+  };
+
+  const [weeks, setWeeks] = useState([initialWeek]);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+  const [allStaff, setAllStaff] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  const [remarks, setRemarks] = useState([]);
+  const [activeTab, setActiveTab] = useState('rota');
 
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
@@ -69,31 +76,19 @@ export default function HomePage() {
   }, [remarks]);
 
   const handleAddStaff = (newStaffData) => {
+    const staffId = generateUniqueKey();
     const newStaff = {
-      id: generateUniqueKey(),
+      id: staffId,
       name: newStaffData.firstName + ' ' + newStaffData.lastName,
       role: newStaffData.role,
       email: newStaffData.email,
       phone: newStaffData.phone,
       defaultAvailability: newStaffData.defaultAvailability,
       isActive: newStaffData.isActive,
-      shifts: Array(7).fill('OFF'),
     };
 
     setAllStaff((prev) => [...prev, newStaff]);
     setStaffList((prev) => [...prev, newStaff]);
-
-    setWeeks((prevWeeks) =>
-      prevWeeks.map((week, index) => {
-        if (index === currentWeekIndex) {
-          return {
-            ...week,
-            staff: [...week.staff, { ...newStaff }],
-          };
-        }
-        return week;
-      })
-    );
   };
 
   const handleRemoveStaff = (staffId) => {
@@ -103,22 +98,8 @@ export default function HomePage() {
     setWeeks((prevWeeks) =>
       prevWeeks.map((week) => ({
         ...week,
-        staff: week.staff.filter((staff) => staff.id !== staffId),
+        staff: week.staff.filter((staff) => staff.originalStaffId !== staffId),
       }))
-    );
-  };
-
-  const handleRemoveStaffFromWeek = (staffId) => {
-    setWeeks((prevWeeks) =>
-      prevWeeks.map((week, index) => {
-        if (index === currentWeekIndex) {
-          return {
-            ...week,
-            staff: week.staff.filter((staff) => staff.id !== staffId),
-          };
-        }
-        return week;
-      })
     );
   };
 
@@ -130,12 +111,33 @@ export default function HomePage() {
       prevWeeks.map((week, index) => {
         if (index === currentWeekIndex) {
           // Only add if staff is not already in the week
-          if (!week.staff.some((s) => s.id === staffId)) {
+          if (!week.staff.some((s) => s.originalStaffId === staffId)) {
+            const weeklyStaffId = createWeeklyStaffId(staffId, week.id);
+            const staffWithShifts = {
+              ...staffToAdd,
+              id: weeklyStaffId,
+              originalStaffId: staffId, // Keep track of the original staff ID
+              shifts: Array(7).fill('OFF'),
+            };
             return {
               ...week,
-              staff: [...week.staff, { ...staffToAdd, shifts: Array(7).fill('OFF') }],
+              staff: [...week.staff, staffWithShifts],
             };
           }
+        }
+        return week;
+      })
+    );
+  };
+
+  const handleRemoveStaffFromWeek = (weeklyStaffId) => {
+    setWeeks((prevWeeks) =>
+      prevWeeks.map((week, index) => {
+        if (index === currentWeekIndex) {
+          return {
+            ...week,
+            staff: week.staff.filter((staff) => staff.id !== weeklyStaffId),
+          };
         }
         return week;
       })
@@ -149,12 +151,14 @@ export default function HomePage() {
           if (week.id === weekId) {
             return {
               ...week,
-              staff: week.staff.map((staff) => {
-                if (staff.id === staffId) {
-                  const updatedShifts = updateFn(staff.shifts);
-                  return { ...staff, shifts: updatedShifts };
+              staff: week.staff.map((staffMember) => {
+                if (staffMember.id === staffId) {
+                  return {
+                    ...staffMember,
+                    shifts: updateFn(staffMember.shifts || Array(7).fill('OFF')),
+                  };
                 }
-                return staff;
+                return staffMember;
               }),
             };
           }
@@ -174,36 +178,30 @@ export default function HomePage() {
   };
 
   const addWeek = () => {
+    const newWeekId = generateUniqueKey();
     const lastWeek = weeks[weeks.length - 1];
-    const newStartDate = new Date(lastWeek.days[6]);
-    newStartDate.setDate(newStartDate.getDate() + 1); // Start from the next day (Monday)
+    const newStartDate = new Date(lastWeek.startDate);
+    newStartDate.setDate(newStartDate.getDate() + 7);
 
     const newWeek = {
-      id: Date.now().toString(),
+      id: newWeekId,
       startDate: newStartDate.toISOString().split('T')[0],
-      staff: staffList.map((staff) => ({
-        ...staff,
-        shifts: Array(7).fill('OFF'),
-      })),
-      days: generateWeekDays(newStartDate),
+      staff: [], // Start with empty staff list
+      days: generateWeekDays(newStartDate.toISOString().split('T')[0]),
     };
 
-    setWeeks((prevWeeks) => [...prevWeeks, newWeek]);
+    setWeeks((prev) => [...prev, newWeek]);
+    setCurrentWeekIndex((prev) => prev + 1);
   };
 
   // Function to handle moving to the previous week
   const handlePreviousWeek = () => {
-    if (currentWeekIndex > 0) {
-      setCurrentWeekIndex(currentWeekIndex - 1);
-    }
+    setCurrentWeekIndex((prev) => Math.max(0, prev - 1));
   };
 
   // Function to handle moving to the next week
   const handleNextWeek = () => {
-    if (currentWeekIndex >= weeks.length - 1) {
-      addWeek();
-    }
-    setCurrentWeekIndex((prevIndex) => prevIndex + 1);
+    setCurrentWeekIndex((prev) => Math.min(weeks.length - 1, prev + 1));
   };
 
   // Function to handle moving to the current week
@@ -238,56 +236,66 @@ export default function HomePage() {
     setWeeks((prevWeeks) => prevWeeks.filter((week) => week.id !== weekId));
   };
 
-  // Get the current week based on currentWeekIndex
-  const currentWeek = weeks[currentWeekIndex];
+  // Ensure we always have a valid currentWeek
+  const currentWeek = weeks[currentWeekIndex] || initialWeek;
 
   return (
-    <div>
-      <StaffManagement
-        staffList={staffList}
-        onAddStaff={handleAddStaff}
-        onRemoveStaff={handleRemoveStaff}
-      />
-
-      <div className="mb-4">
-        <Button
-          onClick={handlePreviousWeek}
-          className="bg-blue-500 text-white ml-5"
-          disabled={currentWeekIndex === 0}
-        >
-          Previous Week
-        </Button>
-        <Button
-          onClick={handleNextWeek}
-          className="bg-blue-500 text-white ml-5"
-        >
-          Next Week
-        </Button>
-        <Button
-          onClick={handleCurrentWeek}
-          className="bg-green-500 text-white ml-5"
-        >
-          Current Week
-        </Button>
-        {/* New button for saving the rota as an image */}
-        <Button
-          onClick={() =>
-            saveAsImage('rota-table', `rota-week-${currentWeekIndex}.png`)
-          }
-          className="bg-yellow-500 text-white ml-5"
-        >
-          Save as Image
-        </Button>
+    <div className="container mx-auto px-4 py-8">
+      {/* Tab Navigation */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex gap-4">
+          <button
+            onClick={() => setActiveTab('rota')}
+            className={`py-4 px-6 text-sm font-medium ${
+              activeTab === 'rota'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Rota
+          </button>
+          <button
+            onClick={() => setActiveTab('staff')}
+            className={`py-4 px-6 text-sm font-medium ${
+              activeTab === 'staff'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Staff List
+          </button>
+        </nav>
       </div>
 
-      <div className="overflow-x-auto overflow-y-auto max-h-[25rem]">
-        {currentWeek && (
-          <div
-            key={currentWeek.id}
-            id="rota-table"
-            className="bg-white p-6 shadow rounded-md mb-4"
-          >
-            <table className="table-auto w-full border-separate border-spacing-0 md:border-spacing-2">
+      {/* Rota Tab Content */}
+      {activeTab === 'rota' && (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handlePreviousWeek}
+                className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+              >
+                ←
+              </button>
+              <button
+                onClick={handleNextWeek}
+                className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+              >
+                →
+              </button>
+              <button
+                onClick={addWeek}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Add Week
+              </button>
+            </div>
+          </div>
+
+          {/* Table section */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200">
               <thead className="sticky top-0 z-30 bg-white">
                 <tr className="bg-gray-100">
                   <th className="px-6 py-3 border sticky left-0 bg-gray-100 z-10">
@@ -302,138 +310,153 @@ export default function HomePage() {
                       })}
                     </th>
                   ))}
-                  {/* Removed Weekly Hours header */}
                 </tr>
               </thead>
               <tbody>
-                {currentWeek.staff.map((staff) => (
-                  <tr key={staff.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 border sticky left-0 bg-white z-20">
-                      <div className="flex items-center justify-between">
-                        <span>{staff.name}</span>
-                        <Button
-                          onClick={() => handleRemoveStaffFromWeek(staff.id)}
-                          className="text-red-500 hover:underline text-xs"
-                        >
-                          Remove from Week
-                        </Button>
-                      </div>
-                    </td>
-                    {staff.shifts.map((shift, dayIndex) => (
-                      <td key={dayIndex} className="px-6 py-3 border">
-                        <ShiftSlot
-                          staffId={staff.id}
-                          dayIndex={dayIndex}
-                          shift={shift}
-                          onShiftsChange={handleShiftsChange.bind(
-                            null,
-                            currentWeek.id
-                          )}
-                          staffShifts={staff.shifts}
-                          weekId={currentWeek.id}
-                        />
-                        <ShiftRemarks
-                          staffId={staff.id}
-                          dayIndex={dayIndex}
-                          remarks={remarks.filter(
-                            (r) =>
-                              r.staffId === staff.id &&
-                              r.dayIndex === dayIndex &&
-                              r.weekId === currentWeek.id
-                          )}
-                          onAddRemark={handleAddRemark.bind(
-                            null,
-                            currentWeek.id
-                          )}
-                          onRemoveRemark={handleRemoveRemark}
-                        />
+                {currentWeek.staff.map((staff) => {
+                  const rowKey = `row-${currentWeek.id}-${staff.id}`;
+                  return (
+                    <tr key={rowKey}>
+                      <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r">
+                        <div className="flex items-center justify-between">
+                          <span>{staff.name}</span>
+                          <button
+                            onClick={() => handleRemoveStaffFromWeek(staff.id)}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </td>
-                    ))}
-                    {/* Removed Weekly Hours cell */}
-                  </tr>
-                ))}
+                      {currentWeek.days.map((day, dayIndex) => {
+                        const cellKey = `cell-${currentWeek.id}-${staff.id}-${dayIndex}`;
+                        return (
+                          <td
+                            key={cellKey}
+                            className={`px-6 py-4 whitespace-nowrap border ${
+                              dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
+                            }`}
+                          >
+                            <ShiftSlot
+                              staffId={staff.originalStaffId}
+                              dayIndex={dayIndex}
+                              shift={staff.shifts[dayIndex] || 'OFF'}
+                              onShiftsChange={handleShiftsChange.bind(
+                                null,
+                                currentWeek.id
+                              )}
+                              staffShifts={currentWeek.staff.filter(
+                                (s) =>
+                                  s.originalStaffId === staff.originalStaffId &&
+                                  s.id === staff.id
+                              )}
+                              onAddRemark={handleAddRemark.bind(
+                                null,
+                                currentWeek.id
+                              )}
+                              onRemoveRemark={handleRemoveRemark}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-            {/* New div for displaying the current week's date range */}
-            <div className="mt-4 text-left">
-              <p className="text-lg font-medium">
-                Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate), 'dd/MM/yy')} to{' '}
-                {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yy')}
-              </p>
-            </div>
           </div>
-        )}
-      </div>
 
-      <div className="mt-4 mb-4">
-        <button
-          onClick={() => {
-            const currentWeek = weeks[currentWeekIndex];
-            const availableStaff = allStaff.filter(
-              (staff) => !currentWeek.staff.some((s) => s.id === staff.id)
-            );
+          {/* Week date range display */}
+          <div className="mt-4 text-left">
+            <p className="text-lg font-medium">
+              Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate), 'dd/MM/yy')} to{' '}
+              {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yy')}
+            </p>
+          </div>
 
-            if (availableStaff.length === 0) {
-              alert('No available staff to add');
-              return;
-            }
+          {/* Add Staff to Week button */}
+          <div className="mt-4 mb-4">
+            <button
+              onClick={() => {
+                const currentWeek = weeks[currentWeekIndex];
+                const availableStaff = allStaff.filter(
+                  (staff) => !currentWeek.staff.some((s) => s.originalStaffId === staff.id)
+                );
 
-            // Show modal or dropdown with available staff
-            const staffSelect = document.createElement('select');
-            staffSelect.className = 'border rounded p-2 mr-2';
-            availableStaff.forEach((staff) => {
-              const option = document.createElement('option');
-              option.value = staff.id;
-              option.textContent = `${staff.name} (${staff.role || 'No role'})`;
-              staffSelect.appendChild(option);
-            });
+                if (availableStaff.length === 0) {
+                  alert('No available staff to add');
+                  return;
+                }
 
-            const dialog = document.createElement('dialog');
-            dialog.className = 'p-4 rounded shadow-lg';
+                // Show modal or dropdown with available staff
+                const staffSelect = document.createElement('select');
+                staffSelect.className = 'border rounded p-2 mr-2';
+                availableStaff.forEach((staff) => {
+                  const option = document.createElement('option');
+                  option.value = staff.id;
+                  option.textContent = `${staff.name} (${staff.role || 'No role'})`;
+                  staffSelect.appendChild(option);
+                });
 
-            const form = document.createElement('form');
-            form.method = 'dialog';
+                const dialog = document.createElement('dialog');
+                dialog.className = 'p-4 rounded shadow-lg';
 
-            const title = document.createElement('h3');
-            title.textContent = 'Add Staff to Week';
-            title.className = 'text-lg font-bold mb-4';
+                const form = document.createElement('form');
+                form.method = 'dialog';
 
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'flex justify-end gap-2 mt-4';
+                const title = document.createElement('h3');
+                title.textContent = 'Add Staff to Week';
+                title.className = 'text-lg font-bold mb-4';
 
-            const addButton = document.createElement('button');
-            addButton.textContent = 'Add';
-            addButton.className = 'bg-blue-500 text-white px-4 py-2 rounded';
-            addButton.onclick = () => {
-              handleAddStaffToWeek(staffSelect.value);
-              dialog.close();
-            };
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'flex justify-end gap-2 mt-4';
 
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancel';
-            cancelButton.className = 'bg-gray-300 px-4 py-2 rounded';
-            cancelButton.onclick = () => dialog.close();
+                const addButton = document.createElement('button');
+                addButton.textContent = 'Add';
+                addButton.className = 'bg-blue-500 text-white px-4 py-2 rounded';
+                addButton.onclick = () => {
+                  handleAddStaffToWeek(staffSelect.value);
+                  dialog.close();
+                };
 
-            buttonContainer.appendChild(cancelButton);
-            buttonContainer.appendChild(addButton);
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.className = 'bg-gray-300 px-4 py-2 rounded';
+                cancelButton.onclick = () => dialog.close();
 
-            form.appendChild(title);
-            form.appendChild(staffSelect);
-            form.appendChild(buttonContainer);
-            dialog.appendChild(form);
+                buttonContainer.appendChild(cancelButton);
+                buttonContainer.appendChild(addButton);
 
-            document.body.appendChild(dialog);
-            dialog.showModal();
+                form.appendChild(title);
+                form.appendChild(staffSelect);
+                form.appendChild(buttonContainer);
+                dialog.appendChild(form);
 
-            dialog.addEventListener('close', () => {
-              document.body.removeChild(dialog);
-            });
-          }}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          Add Staff to Week
-        </button>
-      </div>
+                document.body.appendChild(dialog);
+                dialog.showModal();
+
+                dialog.addEventListener('close', () => {
+                  document.body.removeChild(dialog);
+                });
+              }}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Add Staff to Week
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Staff List Tab Content */}
+      {activeTab === 'staff' && (
+        <div className="mt-4">
+          <StaffManagement
+            staffList={staffList}
+            onAddStaff={handleAddStaff}
+            onRemoveStaff={handleRemoveStaff}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -13,8 +13,9 @@ export default function ShiftSlot({
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
     const timeOptions = generateTimeOptions();
-    const [isShiftAdded, setIsShiftAdded] = useState(false);
+    const [isShiftAdded, setIsShiftAdded] = useState(shift !== 'OFF');
 
+    // Update local state when shift prop changes
     useEffect(() => {
         if (shift && shift !== 'OFF') {
             const [start, end] = shift.split('-').map((s) => s.trim());
@@ -28,54 +29,20 @@ export default function ShiftSlot({
         }
     }, [shift]);
 
-    useEffect(() => {
-        const handleAutoAssignShift = () => {
-            if (startTime && endTime) {
-                const startVal = parseTime(startTime);
-                const endVal = parseTime(endTime);
-
-                if (startVal >= endVal) {
-                    alert('End time must be after start time.');
-                    return;
-                }
-
-                const updateFn = (prevShifts) => {
-                    const newShifts = [...prevShifts];
-                    newShifts[dayIndex] = `${startTime} - ${endTime}`;
-                    return newShifts;
-                };
-                 onShiftsChange(weekId, staffId, dayIndex, updateFn);
-
-                setIsShiftAdded(true);
-            }
-        };
-        handleAutoAssignShift();
-    }, [
-        startTime,
-        endTime,
-        staffId,
-        dayIndex,
-        onShiftsChange,
-       weekId,
-    ]);
-
     const handleStartTimeChange = (event) => {
-        setStartTime(event.target.value);
+        const newStartTime = event.target.value;
+        setStartTime(newStartTime);
+        if (newStartTime && endTime) {
+            updateShiftIfValid(newStartTime, endTime);
+        }
     };
 
     const handleEndTimeChange = (event) => {
-        setEndTime(event.target.value);
-    };
-
-     const handleRemoveShift = () => {
-       const updateFn = (prevShifts) => {
-            const newShifts = [...prevShifts];
-            newShifts[dayIndex] = 'OFF';
-            return newShifts;
-        };
-       onShiftsChange(weekId, staffId, dayIndex, updateFn);
-
-        setIsShiftAdded(false);
+        const newEndTime = event.target.value;
+        setEndTime(newEndTime);
+        if (startTime && newEndTime) {
+            updateShiftIfValid(startTime, newEndTime);
+        }
     };
 
     const parseTime = (timeStr) => {
@@ -84,51 +51,86 @@ export default function ShiftSlot({
         return hours + minutes / 60;
     };
 
+    const updateShiftIfValid = (start, end) => {
+        if (!start || !end) return;
+
+        const startVal = parseTime(start);
+        const endVal = parseTime(end);
+
+        if (startVal >= endVal) {
+            alert('End time must be after start time.');
+            return;
+        }
+
+        const updateFn = (prevShifts) => {
+            if (!Array.isArray(prevShifts)) {
+                prevShifts = Array(7).fill('OFF');
+            }
+            const newShifts = [...prevShifts];
+            newShifts[dayIndex] = `${start} - ${end}`;
+            return newShifts;
+        };
+
+        onShiftsChange(weekId, staffId, dayIndex, updateFn);
+        setIsShiftAdded(true);
+    };
+
+    const handleRemoveShift = () => {
+        const updateFn = (prevShifts) => {
+            if (!Array.isArray(prevShifts)) {
+                prevShifts = Array(7).fill('OFF');
+            }
+            const newShifts = [...prevShifts];
+            newShifts[dayIndex] = 'OFF';
+            return newShifts;
+        };
+        onShiftsChange(weekId, staffId, dayIndex, updateFn);
+        setIsShiftAdded(false);
+        setStartTime('');
+        setEndTime('');
+    };
+
     return (
         <div className="flex flex-col gap-2 w-full">
-             {/* Shift Display */}
-             {isShiftAdded && (
+            {/* Shift Display */}
+            {isShiftAdded ? (
                 <div className="flex items-center gap-1 bg-gray-200 rounded px-2 py-1 text-sm w-fit shift-slot-chip">
-                    <span>{shift}</span>
+                    <span>{`${startTime} - ${endTime}`}</span>
                     <button
                         onClick={handleRemoveShift}
-                        className="text-red-500 ml-1 hover:underline"
-                        >
-                         x
-                   </button>
-              </div>
-           )}
-
-             {/* Shift Selection */}
-             {!isShiftAdded && (
-                <div className="flex items-end gap-3">
-                   <select
-                     value={startTime}
-                       onChange={handleStartTimeChange}
-                      className="border border-gray-300 rounded p-1 w-24 text-sm"
+                        className="text-red-500 ml-1 hover:text-red-700"
                     >
-                       <option value="">Start Time</option>
-                         {timeOptions.map((time) => (
+                        ×
+                    </button>
+                </div>
+            ) : (
+                <div className="flex gap-2">
+                    <select
+                        value={startTime}
+                        onChange={handleStartTimeChange}
+                        className="p-1 text-sm border rounded"
+                    >
+                        <option value="">Start</option>
+                        {timeOptions.map((time) => (
                             <option key={time} value={time}>
-                             {time}
+                                {time}
                             </option>
                         ))}
-                   </select>
-
-                   <select
+                    </select>
+                    <select
                         value={endTime}
-                       onChange={handleEndTimeChange}
-                       className="border border-gray-300 rounded p-1 w-24 text-sm"
-                      >
-                     <option value="">End Time</option>
-                         {timeOptions.map((time) => (
-                           <option key={time} value={time}>
-                             {time}
-                           </option>
-                       ))}
-                  </select>
-              </div>
-           )}
-     </div>
+                        onChange={handleEndTimeChange}
+                        className="p-1 text-sm border rounded"
+                    >
+                        <option value="">End</option>
+                        {timeOptions.map((time) => (
+                            <option key={time} value={time}>
+                                {time}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+        </div>
     );
 }

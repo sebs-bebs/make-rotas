@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Button from './Button';
 import StaffManagementModal from './StaffManagementModal';
+import StaffImport from './StaffImport';
 
 export default function StaffManagement({ staffList, onAddStaff, onRemoveStaff }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -12,13 +13,29 @@ export default function StaffManagement({ staffList, onAddStaff, onRemoveStaff }
     staff.role?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleImport = (importedStaff) => {
+    // Add each imported staff member
+    importedStaff.forEach(staff => {
+      onAddStaff(staff);
+    });
+    alert(`Successfully imported ${importedStaff.length} staff members`);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Staff Management</h2>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-blue-500">
-          Add New Staff
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsModalOpen(true)} className="bg-blue-500">
+            Add New Staff
+          </Button>
+        </div>
+      </div>
+
+      {/* Import Section */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Import Staff List</h3>
+        <StaffImport onImport={handleImport} />
       </div>
 
       <div className="mb-4">
