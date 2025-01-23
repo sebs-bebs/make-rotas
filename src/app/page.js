@@ -443,13 +443,21 @@ export default function HomePage() {
     setSelectedStaff(new Set());
   };
 
+  const handleExportRota = () => {
+    const currentWeek = weeks[currentWeekIndex];
+    const startDate = new Date(currentWeek.days[0]);
+    const endDate = new Date(currentWeek.days[6]);
+    const filename = `rota-${formatDateWithAbbreviatedMonth(startDate)}-to-${formatDateWithAbbreviatedMonth(endDate)}.png`;
+    saveAsImage('rota-table', filename);
+  };
+
   // Ensure we always have a valid currentWeek
   const currentWeek = weeks[currentWeekIndex] || initialWeek;
 
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Tab Navigation */}
-      <div className="mb-6 border-b border-gray-200">
+      <div role="tablist" className="flex border-b border-gray-200 mb-4">
         <nav className="-mb-px flex gap-4">
           <button
             onClick={() => setActiveTab('rota')}
@@ -476,9 +484,9 @@ export default function HomePage() {
 
       {/* Rota Tab Content */}
       {activeTab === 'rota' && (
-        <div>
+        <div className="flex flex-col gap-4">
           {/* Week Navigation Controls */}
-          <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow">
+          <div className="navigation-controls flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow">
             <div className="flex items-center gap-4">
               {currentWeekIndex === 0 ? (
                 <div className="flex items-center gap-2">
@@ -527,38 +535,25 @@ export default function HomePage() {
               )}
             </div>
 
-            <div className="text-gray-600 flex items-center gap-4">
-              <span>Week {currentWeekIndex + 1} of {weeks.length}</span>
-              {currentWeekIndex === weeks.length - 1 && (
-                <span className="text-amber-600 flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Add a new week to continue
-                </span>
-              )}
+            <div className="flex items-center gap-4">
+              <span className="text-gray-600">Week {currentWeekIndex + 1} of {weeks.length}</span>
+              <Button onClick={handleExportRota} className="bg-green-600 hover:bg-green-700">
+                Export as Image
+              </Button>
             </div>
           </div>
 
           {/* Current Week Info */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            <h2 className="text-xl font-semibold mb-2">
-              Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.startDate))} to{' '}
-              {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]))}
-            </h2>
+          <div className="text-lg font-semibold text-gray-800">
+            Week of {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[0]))}
           </div>
 
           {/* Table section */}
           <div className="mt-4 overflow-x-auto">
             <div className="max-h-[70vh] overflow-y-auto">
-              <table className="min-w-full border-collapse border relative">
+              <table id="rota-table" className="min-w-full bg-white border border-gray-300">
                 <thead className="bg-gray-50 sticky top-0 z-20">
                   <tr>
-                    <th className="w-8 px-2 py-3 border-b"></th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-b">
                       Staff Member
                     </th>
@@ -583,15 +578,7 @@ export default function HomePage() {
                     const rowKey = `row-${currentWeek.id}-${staff.id}`;
                     return (
                       <tr key={rowKey} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
-                        <td className="w-8 px-2 py-4 border-r">
-                          <input
-                            type="checkbox"
-                            checked={selectedStaffToRemove.has(staff.id)}
-                            onChange={() => toggleStaffSelection(staff.id)}
-                            className="h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
-                          />
-                        </td>
-                        <td className="sticky left-0 z-10 bg-white border-r border-gray-300">
+                        <td className="sticky left-0 z-10 bg-white">
                           <div className="truncate max-w-[150px] px-6 py-4" title={staff.name}>
                             {staff.name}
                           </div>

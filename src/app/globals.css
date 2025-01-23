@@ -127,3 +127,40 @@ body {
   z-index: 50;
   margin-bottom: 0.25rem;
 }
+
+/* Image capture styles */
+.capturing-image #rota-table {
+  background-color: white !important;
+  border-collapse: collapse !important;
+}
+
+.capturing-image #rota-table th,
+.capturing-image #rota-table td {
+  border: 1px solid #e5e7eb !important;
+  padding: 0.75rem !important;
+}
+
+.capturing-image #rota-table thead th {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+}
+
+/* Hide UI elements during capture */
+.capturing-image button,
+.capturing-image select,
+.capturing-image .navigation-controls,
+.capturing-image [role="tablist"],
+.capturing-image .add-staff-button {
+  display: none !important;
+}
+
+.capturing-image .overflow-x-auto,
+.capturing-image .overflow-y-auto {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Remove any fixed positioning during capture */
+.capturing-image .sticky {
+  position: static !important;
+}
