@@ -461,7 +461,7 @@ export default function HomePage() {
         <nav className="-mb-px flex gap-4">
           <button
             onClick={() => setActiveTab('rota')}
-            className={`py-4 px-6 text-sm font-medium ${
+            className={`py-1 px-2 text-sm font-medium ${
               activeTab === 'rota'
                 ? 'border-b-2 border-blue-500 text-blue-600'
                 : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -471,7 +471,7 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => setActiveTab('staff')}
-            className={`py-4 px-6 text-sm font-medium ${
+            className={`py-1 px-2 text-sm font-medium ${
               activeTab === 'staff'
                 ? 'border-b-2 border-blue-500 text-blue-600'
                 : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -580,7 +580,13 @@ export default function HomePage() {
                     return (
                       <tr key={rowKey} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
                         <td className="sticky left-0 z-10 bg-white">
-                          <div className="truncate max-w-[150px] px-6 py-4" title={staff.name}>
+                          <div className="truncate max-w-[150px] px-6 py-4 flex items-center" title={staff.name}>
+                            <input
+                              type="checkbox"
+                              checked={selectedStaffToRemove.has(staff.id)}
+                              onChange={() => toggleStaffSelection(staff.id)}
+                              className="h-4 w-4 text-blue-600 mr-2"
+                            />
                             {staff.name}
                           </div>
                         </td>
