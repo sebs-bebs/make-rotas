@@ -6,11 +6,9 @@ import { useRouter } from 'next/navigation'; // Import useRouter from next/navig
 import ShiftSlot from '../components/ShiftSlot';
 import ShiftRemarks from '../components/ShiftRemarks';
 import StaffInput from '../components/StaffInput';
-import WeeklyHours from '../components/WeeklyHours';
 import Button from '../components/Button';
 import DateRangePicker from '../components/DateRangePicker'; // Import the DateRangePicker
 import { generateUniqueKey } from '../lib/generateUniqueKey'; // Import the unique key generator
-import { saveAsImage } from '../utils/saveAsImage';
 import { calculateWeeklyHours } from '../utils/calculateWeeklyHours';
 
 const generateWeekDays = (startDate) => {
@@ -18,7 +16,7 @@ const generateWeekDays = (startDate) => {
   for (let i = 0; i < 7; i++) {
     const currentDate = new Date(startDate);
     currentDate.setDate(currentDate.getDate() + i);
-    days.push(currentDate);
+    days.push(currentDate.toISOString().split('T')[0]); // Use ISO string format
   }
   return days;
 };
@@ -28,9 +26,9 @@ export default function HomePage() {
   const [weeks, setWeeks] = useState([
     {
       id: generateUniqueKey(),
-      startDate: new Date('2025-01-20'),
+      startDate: new Date().toISOString().split('T')[0], // Changed to current date
       staff: [],
-      days: generateWeekDays(new Date('2025-01-20')),
+      days: generateWeekDays(new Date().toISOString().split('T')[0]), // Update days generation as well
     },
   ]);
 
@@ -151,28 +149,16 @@ export default function HomePage() {
   // Function to calculate the total weekly hours for a set of shifts
   const getWeeklyHours = (shifts) => calculateWeeklyHours(shifts);
 
-  // Function to calculate the grand total hours for a specific week
-  const getGrandTotal = (week) => {
-    return week.staff.reduce((acc, staff) => {
-      return acc + getWeeklyHours(staff.shifts);
-    }, 0);
-  };
-
-  // Function to convert the table to an image and save it
-  const handleSaveAsImage = () => {
-    saveAsImage('rota-table', 'my-rotas.png');
-  };
-
   // Function to add a new week
   const addWeek = () => {
     if (weeks.length === 0) {
       // If no weeks exist, start from a default date
-      const defaultStartDate = new Date('2025-01-20');
+      const defaultStartDate = new Date(); // Changed to current date
       setWeeks((prevWeeks) => [
         ...prevWeeks,
         {
           id: generateUniqueKey(),
-          startDate: defaultStartDate,
+          startDate: defaultStartDate.toISOString().split('T')[0], // Use ISO string format
           staff: staffList.map((staff) => ({
             ...staff,
             shifts: Array(7).fill('OFF'),
@@ -190,7 +176,7 @@ export default function HomePage() {
         ...prevWeeks,
         {
           id: generateUniqueKey(),
-          startDate: newStartDate,
+          startDate: newStartDate.toISOString().split('T')[0], // Use ISO string format
           staff: staffList.map((staff) => ({
             ...staff,
             shifts: Array(7).fill('OFF'),
@@ -203,14 +189,14 @@ export default function HomePage() {
 
   // Function to navigate to a specific week
   const handleWeekNavigation = (weekId) => {
-    router.push(`/week/${weekId}`); // Navigate to the week page with weekId
+    router.push(`/week/${weekId}`);
   };
 
   // Function to remove a week
   const removeWeek = (weekId) => {
     setWeeks((prevWeeks) => prevWeeks.filter((week) => week.id !== weekId));
     if (router.query?.weekId === weekId) {
-      router.push('/'); // Redirect to homepage if the current week is removed
+      router.push('/');
     }
   };
 
@@ -260,7 +246,7 @@ export default function HomePage() {
             onClick={() => handleWeekNavigation(week.id)}
             className={`${currentWeekId === week.id ? 'bg-purple-600 text-white' : 'bg-gray-300'}`}
           >
-            Week of {week.startDate.toLocaleDateString()}
+            Week of {new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </Button>
         ))}
         <Button onClick={addWeek} className="bg-purple-700 text-white">
@@ -285,78 +271,61 @@ export default function HomePage() {
                   </th>
                   {week.days.map((day, dayIndex) => (
                     <th key={dayIndex} className="px-6 py-3 border">
-                      {day.toLocaleDateString()}
+                      {new Date(day).toLocaleDateString('en-US', {
+                        month: 'short', // Use short month names
+                        day: 'numeric',
+                        weekday: 'short',
+                      })}
                     </th>
                   ))}
-                  <th className="px-6 py-3 border">TOTAL HOURS</th>
-                  <th className="px-6 py-3 border">ACTIONS</th>
+                  {/* Removed "Total Hours" and "Actions" columns */}
                 </tr>
               </thead>
               <tbody>
-                {week.staff.map((staff) => {
-                  const totalHours = getWeeklyHours(staff.shifts);
-                  return (
-                    <tr key={staff.id} className="hover:bg-gray-50">
-                      {/* First Column Styling */}
-                      <td className="px-6 py-3 border sticky left-0 bg-white z-20">
-                        <div className="flex items-center justify-between">
-                          <span>{staff.name}</span>
-                          <Button
-                            onClick={() => handleRemoveStaff(staff.id)}
-                            className="text-red-500 hover:underline bg-transparent px-2 py-1"
-                          >
-                            x
-                          </Button>
-                        </div>
+                {week.staff.map((staff) => (
+                  <tr key={staff.id} className="hover:bg-gray-50">
+                    {/* First Column Styling */}
+                    <td className="px-6 py-3 border sticky left-0 bg-white z-20">
+                      <div className="flex items-center justify-between">
+                        <span>{staff.name}</span>
+                        {/* Removed "x" button */}
+                      </div>
+                    </td>
+                    {/* Remaining table cells */}
+                    {staff.shifts.map((shift, dayIndex) => (
+                      <td key={dayIndex} className="px-6 py-3 border">
+                        <ShiftSlot
+                          staffId={staff.id}
+                          dayIndex={dayIndex}
+                          shift={shift}
+                          onShiftsChange={handleShiftsChange.bind(null, week.id)}
+                          staffShifts={staff.shifts}
+                          weekId={week.id}
+                        />
+                        <ShiftRemarks
+                          staffId={staff.id}
+                          dayIndex={dayIndex}
+                          remarks={remarks.filter(
+                            (r) =>
+                              r.staffId === staff.id &&
+                              r.dayIndex === dayIndex &&
+                              r.weekId === week.id
+                          )}
+                          onAddRemark={handleAddRemark.bind(null, week.id)}
+                          onRemoveRemark={handleRemoveRemark}
+                        />
                       </td>
-                      {/* Remaining table cells */}
-                      {staff.shifts.map((shift, dayIndex) => (
-                        <td key={dayIndex} className="px-6 py-3 border">
-                          <ShiftSlot
-                            staffId={staff.id}
-                            dayIndex={dayIndex}
-                            shift={shift}
-                            onShiftsChange={handleShiftsChange.bind(null, week.id)}
-                            staffShifts={staff.shifts}
-                            weekId={week.id}
-                          />
-                          <ShiftRemarks
-                            staffId={staff.id}
-                            dayIndex={dayIndex}
-                            remarks={remarks.filter(
-                              (r) =>
-                                r.staffId === staff.id &&
-                                r.dayIndex === dayIndex &&
-                                r.weekId === week.id
-                            )}
-                            onAddRemark={handleAddRemark.bind(null, week.id)}
-                            onRemoveRemark={handleRemoveRemark}
-                          />
-                        </td>
-                      ))}
-                      <td className="px-6 py-3 border text-center font-bold">
-                        {totalHours.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-3 border">
-                        {/* Additional actions can be added here */}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    ))}
+                    {/* Removed "Total Hours" and "Actions" columns */}
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {/* GRAND TOTAL */}
-            <div className="text-right mt-6 font-bold text-xl">
-              GRAND TOTAL <span className="ml-2">{getGrandTotal(week).toFixed(2)}</span>
-            </div>
+            {/* Removed "Grand Total" */}
           </div>
         ))}
       </div>
-
-      {/* Save as Image Button */}
-      <div className="mt-6 flex justify-end">
-        <Button onClick={handleSaveAsImage}>Save as Image</Button>
-      </div>
+      {/* Removed "Save as Image" Button */}
     </div>
   );
 }

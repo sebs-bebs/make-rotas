@@ -1,8 +1,10 @@
 // src/components/DatePickerInput.js
+'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './DatePickerInput.css'; // Import the CSS for the DatePickerInput
+import { format } from 'date-fns';
 
 const DatePickerInput = ({ label, selectedDate, onChange, minDate, maxDate }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,7 +36,7 @@ const DatePickerInput = ({ label, selectedDate, onChange, minDate, maxDate }) =>
         <input
           type="text"
           className="border rounded-md p-2 w-full cursor-pointer"
-          value={selectedDate ? selectedDate.toLocaleDateString() : ''}
+          value={selectedDate ? format(selectedDate, 'MMM dd, yyyy') : ''}
           onClick={() => setIsOpen(!isOpen)}
           readOnly
           placeholder={label}
@@ -54,7 +56,7 @@ const DatePickerInput = ({ label, selectedDate, onChange, minDate, maxDate }) =>
             <DatePicker
               selected={selectedDate}
               onChange={onChange}
-              dateFormat="yyyy-MM-dd"
+              dateFormat="MMM d, yyyy" // Update date format here
               minDate={minDate}
               maxDate={maxDate}
               inline
