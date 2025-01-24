@@ -57,6 +57,7 @@ export default function HomePage() {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [staffToRemove, setStaffToRemove] = useState(null);
   const [staffSearchTerm, setStaffSearchTerm] = useState('');
+  const [rotaStaffSearchTerm, setRotaStaffSearchTerm] = useState('');
 
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
@@ -505,7 +506,7 @@ export default function HomePage() {
           {/* Table section */}
           <div className="mt-4 overflow-x-auto">
             {/* Week Navigation Controls */}
-            <div className="flex items-center gap-1 mb-2">
+            <div className="flex items-center gap-1 mb-4">
               <button
                 onClick={() => {
                   if (currentWeekIndex === 0) {
@@ -521,13 +522,6 @@ export default function HomePage() {
               </button>
 
               <button
-                onClick={handleGoToCurrentWeek}
-                className="h-8 px-3 rounded-full bg-gray-800 text-white text-sm font-medium hover:bg-gray-700"
-              >
-                Current Week
-              </button>
-
-              <button
                 onClick={() => {
                   if (currentWeekIndex >= weeks.length - 1) {
                     addWeek('next');
@@ -540,82 +534,113 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                 </svg>
               </button>
+
+              <button
+                onClick={handleGoToCurrentWeek}
+                className="h-8 px-3 rounded-full bg-transparent border border-gray-600 text-gray-600 hover:border-gray-700 hover:text-gray-700 text-sm font-medium ml-4"
+              >
+                Current Week
+              </button>
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto">
-              <table id="rota-table" className="min-w-full bg-white border border-gray-300">
-                <thead className="bg-gray-50 sticky top-0 z-20">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-b">
-                      Staff Member
-                    </th>
-                    {currentWeek.days.map((day, index) => (
-                      <th
-                        key={index}
-                        className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b ${
-                          index === 5 || index === 6 ? 'bg-gray-100' : 'bg-gray-50'
-                        }`}
-                      >
-                        {new Date(day).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          weekday: 'short',
-                        })}
+              <div className="flex flex-col h-full">
+                <div className="p-4 border-b">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={rotaStaffSearchTerm}
+                      onChange={(e) => setRotaStaffSearchTerm(e.target.value)}
+                      placeholder="Search staff by name or role..."
+                      className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <table id="rota-table" className="min-w-full bg-white border border-gray-300">
+                  <thead className="bg-gray-50 sticky top-0 z-20">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-b">
+                        Staff Member
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {currentWeek.staff.map((staff) => {
-                    const rowKey = `row-${currentWeek.id}-${staff.id}`;
-                    return (
-                      <tr key={rowKey} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
-                        <td className="sticky left-0 z-10 bg-white">
-                          <div className="truncate max-w-[150px] px-6 py-4 flex items-center" title={staff.name}>
-                            <input
-                              type="checkbox"
-                              checked={selectedStaffToRemove.has(staff.id)}
-                              onChange={() => toggleStaffSelection(staff.id)}
-                              className="h-4 w-4 text-blue-600 mr-2"
-                            />
-                            {staff.name}
-                          </div>
-                        </td>
-                        {currentWeek.days.map((day, dayIndex) => {
-                          const cellKey = `cell-${currentWeek.id}-${staff.id}-${dayIndex}`;
-                          return (
-                            <td
-                              key={cellKey}
-                              className={`px-6 py-4 whitespace-nowrap border ${
-                                dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
-                              }`}
-                            >
-                              <ShiftSlot
-                                staffId={staff.originalStaffId}
-                                dayIndex={dayIndex}
-                                shift={staff.shifts[dayIndex] || ''}
-                                onShiftsChange={handleShiftsChange.bind(
-                                  null,
-                                  currentWeek.id
-                                )}
-                                staffShifts={currentWeek.staff.filter(
-                                  (s) =>
-                                    s.originalStaffId === staff.originalStaffId &&
-                                    s.id === staff.id
-                                )}
-                                comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
-                                onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
-                                onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
-                                weekId={currentWeek.id}
-                              />
+                      {currentWeek.days.map((day, index) => (
+                        <th
+                          key={index}
+                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b ${
+                            index === 5 || index === 6 ? 'bg-gray-100' : 'bg-gray-50'
+                          }`}
+                        >
+                          {new Date(day).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            weekday: 'short',
+                          })}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentWeek.staff
+                      .filter(staff => 
+                        !rotaStaffSearchTerm ||
+                        staff.name.toLowerCase().includes(rotaStaffSearchTerm.toLowerCase()) ||
+                        staff.role.toLowerCase().includes(rotaStaffSearchTerm.toLowerCase())
+                      )
+                      .map((staff) => {
+                        const rowKey = `row-${currentWeek.id}-${staff.id}`;
+                        return (
+                          <tr key={rowKey} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
+                            <td className="sticky left-0 z-10 bg-white">
+                              <div className="truncate max-w-[165px] px-6 py-4 flex items-center" title={staff.name}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStaffToRemove.has(staff.id)}
+                                  onChange={() => toggleStaffSelection(staff.id)}
+                                  className="h-4 w-4 text-blue-600 mr-2"
+                                />
+                                {staff.name}
+                              </div>
                             </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            {currentWeek.days.map((day, dayIndex) => {
+                              const cellKey = `cell-${currentWeek.id}-${staff.id}-${dayIndex}`;
+                              return (
+                                <td
+                                  key={cellKey}
+                                  className={`px-6 py-4 whitespace-nowrap border ${
+                                    dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
+                                  }`}
+                                >
+                                  <ShiftSlot
+                                    staffId={staff.originalStaffId}
+                                    dayIndex={dayIndex}
+                                    shift={staff.shifts[dayIndex] || ''}
+                                    onShiftsChange={handleShiftsChange.bind(
+                                      null,
+                                      currentWeek.id
+                                    )}
+                                    staffShifts={currentWeek.staff.filter(
+                                      (s) =>
+                                        s.originalStaffId === staff.originalStaffId &&
+                                        s.id === staff.id
+                                    )}
+                                    comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
+                                    onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
+                                    onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
+                                    weekId={currentWeek.id}
+                                  />
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Staff Management Buttons */}
@@ -754,30 +779,26 @@ export default function HomePage() {
                             All staff members have been added to this week.
                           </p>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {getAvailableStaff().map(staff => (
-                              <div
-                                key={staff.id}
-                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                  selectedStaff.has(staff.id)
-                                    ? 'bg-blue-50 border-blue-500'
-                                    : 'hover:bg-gray-50 border-gray-200'
-                                }`}
-                                onClick={() => setSelectedStaff(prev => {
-                                  const newSet = new Set(prev);
-                                  if (newSet.has(staff.id)) {
-                                    newSet.delete(staff.id);
-                                  } else {
-                                    newSet.add(staff.id);
-                                  }
-                                  return newSet;
-                                })}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedStaff.has(staff.id)}
-                                    onChange={() => setSelectedStaff(prev => {
+                          <div className="overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th scope="col" className="w-8 pl-2 pr-0 py-2">
+                                    <span className="sr-only">Select</span>
+                                  </th>
+                                  <th scope="col" className="w-[180px] pl-0 pr-1 py-2 text-left text-sm font-medium text-gray-600">
+                                    NAME
+                                  </th>
+                                  <th scope="col" className="pl-1 pr-3 py-2 text-left text-sm font-medium text-gray-600">
+                                    ROLE
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {getAvailableStaff().map(staff => (
+                                  <tr
+                                    key={staff.id}
+                                    onClick={() => setSelectedStaff(prev => {
                                       const newSet = new Set(prev);
                                       if (newSet.has(staff.id)) {
                                         newSet.delete(staff.id);
@@ -786,15 +807,43 @@ export default function HomePage() {
                                       }
                                       return newSet;
                                     })}
-                                    className="h-4 w-4 text-blue-600"
-                                  />
-                                  <div>
-                                    <div className="font-medium">{staff.name}</div>
-                                    <div className="text-sm text-gray-500">{staff.role}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
+                                    className={`cursor-pointer transition-colors ${
+                                      selectedStaff.has(staff.id)
+                                        ? 'bg-blue-50'
+                                        : 'hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <td className="pl-2 pr-0 py-2 whitespace-nowrap w-8">
+                                      <label className="inline-flex items-center cursor-pointer" onClick={e => e.stopPropagation()}>
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedStaff.has(staff.id)}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedStaff(prev => {
+                                              const newSet = new Set(prev);
+                                              if (newSet.has(staff.id)) {
+                                                newSet.delete(staff.id);
+                                              } else {
+                                                newSet.add(staff.id);
+                                              }
+                                              return newSet;
+                                            });
+                                          }}
+                                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                      </label>
+                                    </td>
+                                    <td className="pl-0 pr-1 py-2 whitespace-nowrap">
+                                      <div className="font-medium text-gray-900 truncate w-[280px]" title={staff.name}>{staff.name}</div>
+                                    </td>
+                                    <td className="pl-1 pr-3 py-2 whitespace-nowrap">
+                                      <div className="text-gray-500">{staff.role}</div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         )}
                       </div>
@@ -816,7 +865,7 @@ export default function HomePage() {
                           className={`text-white px-6 py-2 rounded-full ${
                             selectedStaff.size === 0
                               ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-gray-600 hover:bg-gray-500'
+                              : 'bg-gray-700 hover:bg-gray-800'
                           } font-semibold`}
                         >
                           Add Selected Staff ({selectedStaff.size})
@@ -851,7 +900,7 @@ export default function HomePage() {
                       </button>
                       <button
                         onClick={handleRemoveAllStaff}
-                        className="px-4 py-2 bg-red-500 text-white font-semibold rounded hover:bg-red-600"
+                        className="w-[160px] h-10 flex justify-center items-center gap-1 bg-red-500 text-white font-medium rounded-full hover:bg-red-600"
                       >
                         Yes, Remove All
                       </button>
