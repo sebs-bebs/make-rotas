@@ -42,7 +42,29 @@ export async function saveAsImage(elementId, filename) {
           newCell.textContent = select.value || '';
         } else {
           // For other cells, clean up the text
-          newCell.textContent = cell.textContent.replace(/\s+/g, ' ').trim();
+          let text = cell.textContent.replace(/\s+/g, ' ').trim();
+          
+          // Clean up shift slot text
+          if (text.includes('-')) { // Likely a shift slot
+            // Remove x characters
+            text = text
+              .replace(/×/g, '')
+              .replace(/x/g, '')
+              .replace(/X/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+
+            // Split into time and comment parts
+            const parts = text.split(/(?<=\d)(?=[A-Za-z])/);
+            if (parts.length > 1) {
+              // If there's a comment, add comma separator
+              const timeSlot = parts[0].trim();
+              const comment = parts.slice(1).join('').trim();
+              text = `${timeSlot}, ${comment}`;
+            }
+          }
+          
+          newCell.textContent = text;
         }
 
         // Style cell
