@@ -161,7 +161,7 @@ export default function StaffManagementModal({ isOpen, onClose, onAddStaff }) {
           <div className="flex justify-end gap-2 mt-6">
             <button 
               onClick={onClose} 
-              className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
+              className="bg-transparent text-gray-700 hover:text-gray-600 font-regular py-2 px-4 rounded-full text-sm hover:underline"
             >
               Cancel
             </button>

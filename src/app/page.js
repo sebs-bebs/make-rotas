@@ -91,6 +91,18 @@ export default function HomePage() {
     localStorage.setItem('rota-comments', JSON.stringify(comments));
   }, [comments]);
 
+  useEffect(() => {
+    // Create weeks automatically when reaching penultimate position
+    if (currentWeekIndex >= weeks.length - 2) {
+      // Create next week
+      addWeek('next');
+    }
+    if (currentWeekIndex <= 1) {
+      // Create previous week
+      addWeek('previous');
+    }
+  }, [currentWeekIndex, weeks.length]);
+
   const handleAddStaff = (newStaffData) => {
     const staffId = generateUniqueKey();
     const newStaff = {
@@ -484,64 +496,6 @@ export default function HomePage() {
       {/* Rota Tab Content */}
       {activeTab === 'rota' && (
         <div className="flex flex-col gap-4">
-          {/* Week Navigation Controls */}
-          <div className="navigation-controls flex items-center justify-between mb-4 bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center gap-4">
-              {currentWeekIndex === 0 ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => addWeek('previous')}
-                    className="w-[160px] h-10 flex items-center justify-center px-4 bg-gray-800 text-white font-semibold rounded-full hover:bg-gray-700"
-                  >
-                    <span>Add Previous</span>
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setCurrentWeekIndex(prev => Math.max(0, prev - 1))}
-                  className="w-[160px] h-10 flex items-center justify-center px-4 rounded-full bg-gray-800 text-white font-semibold hover:bg-gray-700"
-                >
-                  Previous Week
-                </button>
-              )}
-
-              <button
-                onClick={handleGoToCurrentWeek}
-                className="w-[160px] h-10 flex items-center justify-center px-4 rounded-full bg-gray-800 text-white font-semibold hover:bg-gray-700"
-              >
-                Current Week
-              </button>
-
-              {currentWeekIndex >= weeks.length - 1 ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => addWeek('next')}
-                    className="w-[160px] h-10 flex items-center justify-center px-4 bg-gray-800 text-white font-semibold rounded-full hover:bg-gray-700"
-                  >
-                    <span>Add Next</span>
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setCurrentWeekIndex(prev => prev + 1)}
-                  className="w-[160px] h-10 flex items-center justify-center px-4 rounded-full bg-gray-800 text-white font-semibold hover:bg-gray-700"
-                >
-                  Next Week
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span>Week {currentWeekIndex + 1} of {weeks.length}</span>
-              <button 
-                onClick={handleExportRota}
-                className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
-              >
-                Export Rota
-              </button>
-            </div>
-          </div>
-
           {/* Current Week Info */}
           <div className="text-lg font-semibold text-gray-800">
             Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[0]), 'dd/MM/yyyy')} to{' '}
@@ -550,6 +504,44 @@ export default function HomePage() {
 
           {/* Table section */}
           <div className="mt-4 overflow-x-auto">
+            {/* Week Navigation Controls */}
+            <div className="flex items-center gap-1 mb-2">
+              <button
+                onClick={() => {
+                  if (currentWeekIndex === 0) {
+                    addWeek('previous');
+                  }
+                  setCurrentWeekIndex(prev => Math.max(0, prev - 1));
+                }}
+                className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+
+              <button
+                onClick={handleGoToCurrentWeek}
+                className="h-8 px-3 rounded-full bg-gray-800 text-white text-sm font-medium hover:bg-gray-700"
+              >
+                Current Week
+              </button>
+
+              <button
+                onClick={() => {
+                  if (currentWeekIndex >= weeks.length - 1) {
+                    addWeek('next');
+                  }
+                  setCurrentWeekIndex(prev => prev + 1);
+                }}
+                className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+
             <div className="max-h-[70vh] overflow-y-auto">
               <table id="rota-table" className="min-w-full bg-white border border-gray-300">
                 <thead className="bg-gray-50 sticky top-0 z-20">
@@ -627,31 +619,40 @@ export default function HomePage() {
             </div>
 
             {/* Staff Management Buttons */}
-            <div className="mt-4 mb-4 flex gap-4">
-              <button
-                onClick={() => setShowBulkAddModal(true)}
-                className="w-[160px] h-10 flex items-center justify-center px-5 bg-gray-800 text-white font-semibold rounded-full hover:bg-gray-700"
+            <div className="mt-4 mb-4 flex justify-between">
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowBulkAddModal(true)}
+                  className="w-[160px] h-10 flex items-center justify-center px-5 bg-gray-800 text-white font-semibold rounded-full hover:bg-gray-700"
+                >
+                  Add Staff
+                </button>
+
+                {selectedStaffToRemove.size > 0 && (
+                  <button
+                    onClick={handleRemoveSelectedStaff}
+                    className="w-[160px] h-10 flex items-center justify-center px-5 bg-red-500 text-white font-semibold rounded-full hover:bg-red-600"
+                  >
+                    Remove Staff
+                  </button>
+                )}
+
+                {currentWeek.staff.length > 0 && selectedStaffToRemove.size === 0 && (
+                  <button
+                    onClick={() => setShowRemoveAllConfirm(true)}
+                    className="w-[180px] h-10 flex items-center justify-center px-5 bg-red-500 text-white font-semibold rounded-full hover:bg-red-600"
+                  >
+                    Remove All Staff
+                  </button>
+                )}
+              </div>
+
+              <button 
+                onClick={handleExportRota}
+                className="w-[160px] h-10 flex items-center justify-center px-5 bg-green-500 text-white font-semibold rounded-full hover:bg-green-600"
               >
-                Add Staff
+                Save as Image
               </button>
-
-              {selectedStaffToRemove.size > 0 && (
-                <button
-                  onClick={handleRemoveSelectedStaff}
-                  className="w-[160px] h-10 flex items-center justify-center px-5 bg-red-500 text-white font-semibold rounded-full hover:bg-red-600"
-                >
-                  Remove Staff
-                </button>
-              )}
-
-              {currentWeek.staff.length > 0 && selectedStaffToRemove.size === 0 && (
-                <button
-                  onClick={() => setShowRemoveAllConfirm(true)}
-                  className="w-[160px] h-10 flex items-center justify-center px-5 bg-red-500 text-white font-semibold rounded-full hover:bg-red-600"
-                >
-                  Remove All Staff
-                </button>
-              )}
             </div>
 
             {/* Bulk Add Staff Modal */}
@@ -805,17 +806,17 @@ export default function HomePage() {
                             setSelectedStaff(new Set());
                             setStaffSearchTerm('');
                           }}
-                          className="px-4 py-2 text-gray-600 hover:text-gray-800 font-semibold"
+                          className="bg-transparent text-gray-700 hover:text-gray-600 font-regular py-2 px-4 rounded-full text-sm hover:underline"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={handleBulkAddStaff}
                           disabled={selectedStaff.size === 0}
-                          className={`px-6 py-2 rounded-lg text-white ${
+                          className={`text-white px-6 py-2 rounded-full ${
                             selectedStaff.size === 0
                               ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-blue-500 hover:bg-blue-600'
+                              : 'bg-gray-600 hover:bg-gray-500'
                           } font-semibold`}
                         >
                           Add Selected Staff ({selectedStaff.size})
@@ -844,7 +845,7 @@ export default function HomePage() {
                     <div className="flex justify-center gap-4">
                       <button
                         onClick={() => setShowRemoveAllConfirm(false)}
-                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-semibold"
+                        className="bg-transparent text-gray-700 hover:text-gray-600 font-regular py-2 px-4 rounded-full text-sm hover:underline"
                       >
                         Cancel
                       </button>

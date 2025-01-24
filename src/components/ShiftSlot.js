@@ -188,7 +188,7 @@ export default function ShiftSlot({
                                     <button
                                         type="button"
                                         onClick={() => setShowCommentInput(false)}
-                                        className="px-2 py-1 text-sm bg-gray-300 rounded hover:bg-gray-400"
+                                        className="bg-transparent text-gray-700 hover:text-gray-600 font-regular py-2 px-4 rounded-full text-sm hover:underline"
                                     >
                                         Cancel
                                     </button>

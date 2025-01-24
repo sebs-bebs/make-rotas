@@ -4,6 +4,12 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import React from 'react';
 
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+
 export const metadata = {
   title: 'Make Rotas',
   description: 'A Next.js app for creating staff schedules',
@@ -12,7 +18,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-gray-100">
+      <body className={`${inter.className} min-h-screen flex flex-col bg-gray-100`}>
         <Toaster position="bottom-right" />
         <header className="bg-white shadow px-6 pt-2.5 pb-2 rounded-md mb-4 flex justify-between items-center">
           <h1 className="text-0.5xl font-bold text-primary">Make Rotas</h1>

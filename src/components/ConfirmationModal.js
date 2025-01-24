@@ -13,7 +13,7 @@ export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, m
         <div className="flex justify-end gap-0.5">
           <button 
             onClick={onClose}
-            className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
+            className="bg-transparent text-gray-700 hover:text-gray-600 font-regular py-2 px-4 rounded-full text-sm hover:underline"
           >
             Cancel
           </button>
