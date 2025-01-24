@@ -21,6 +21,11 @@ export async function saveAsImage(elementId, filename) {
     newTable.style.background = '#fff';
     container.appendChild(newTable);
 
+    // Helper function to truncate text
+    const truncateRemark = (text, maxLength = 8) => {
+      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    };
+
     // Copy only the necessary rows and cells
     const rows = table.querySelectorAll('tr');
     rows.forEach((row, rowIndex) => {
@@ -57,10 +62,10 @@ export async function saveAsImage(elementId, filename) {
             // Split into time and comment parts
             const parts = text.split(/(?<=\d)(?=[A-Za-z])/);
             if (parts.length > 1) {
-              // If there's a comment, add comma separator
+              // If there's a comment, add comma separator and truncate comment
               const timeSlot = parts[0].trim();
               const comment = parts.slice(1).join('').trim();
-              text = `${timeSlot}, ${comment}`;
+              text = `${timeSlot}, ${truncateRemark(comment)}`;
             }
           }
           
