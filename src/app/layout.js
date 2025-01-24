@@ -12,8 +12,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-gray-100">
-        <header className="bg-white shadow p-6 rounded-md mb-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Make Rotas</h1>
+        <header className="bg-white shadow px-6 pt-2.5 pb-2 rounded-md mb-4 flex justify-between items-center">
+          <h1 className="text-0.5xl font-bold text-primary">Make Rotas</h1>
           {/* Add the navigation buttons here */}
           {/* Removed week navigation buttons as they are now in page.js */}
         </header>
@@ -22,7 +22,7 @@ export default function RootLayout({ children }) {
         </main>
         <footer className="bg-white border-t p-4 text-center rounded-md mt-4">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} My Rota App
+            © {new Date().getFullYear()} Make Rotas
           </p>
         </footer>
       </body>

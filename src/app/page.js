@@ -455,7 +455,7 @@ export default function HomePage() {
   const currentWeek = weeks[currentWeekIndex] || initialWeek;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 pt-1 pb-2">
       {/* Tab Navigation */}
       <div role="tablist" className="flex border-b border-gray-200 mb-4">
         <nav className="-mb-px flex gap-4">
@@ -682,83 +682,95 @@ export default function HomePage() {
                     </button>
                   </div>
 
-                  <div className="mb-4">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search staff by name or role..."
-                        value={staffSearchTerm}
-                        onChange={(e) => setStaffSearchTerm(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg pl-10"
-                      />
-                      <svg
-                        className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {getAvailableStaff().length > 0 && (
-                    <div className="flex items-center mb-4 border-b pb-3">
+                  {staffList.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Staff Members Found</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        You need to add staff members to your staff list before you can add them to the rota.
+                      </p>
                       <button
-                        onClick={selectedStaff.size === getAvailableStaff().length ? handleDeselectAllStaff : handleSelectAllStaff}
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                        onClick={() => {
+                          setShowBulkAddModal(false);
+                          setActiveTab('staff');
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-flex items-center gap-2"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          {selectedStaff.size === getAvailableStaff().length ? (
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          ) : (
-                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                          )}
+                          <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
                         </svg>
-                        <span className="font-medium">
-                          {selectedStaff.size === getAvailableStaff().length ? 'Deselect All Staff' : 'Select All Staff'}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({getAvailableStaff().length} available)
-                        </span>
+                        Go to Staff List
                       </button>
                     </div>
-                  )}
-
-                  <div className="flex-1 overflow-y-auto mb-4">
-                    {getAvailableStaff().length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">
-                        All staff members have been added to this week.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {getAvailableStaff().map(staff => (
-                          <div
-                            key={staff.id}
-                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                              selectedStaff.has(staff.id)
-                                ? 'bg-blue-50 border-blue-500'
-                                : 'hover:bg-gray-50 border-gray-200'
-                            }`}
-                            onClick={() => setSelectedStaff(prev => {
-                              const newSet = new Set(prev);
-                              if (newSet.has(staff.id)) {
-                                newSet.delete(staff.id);
-                              } else {
-                                newSet.add(staff.id);
-                              }
-                              return newSet;
-                            })}
+                  ) : (
+                    <>
+                      <div className="mb-4">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search staff by name or role..."
+                            value={staffSearchTerm}
+                            onChange={(e) => setStaffSearchTerm(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg pl-10"
+                          />
+                          <svg
+                            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
                           >
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedStaff.has(staff.id)}
-                                onChange={() => setSelectedStaff(prev => {
+                            <path
+                              fillRule="evenodd"
+                              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {getAvailableStaff().length > 0 && (
+                        <div className="flex items-center mb-4 border-b pb-3">
+                          <button
+                            onClick={selectedStaff.size === getAvailableStaff().length ? handleDeselectAllStaff : handleSelectAllStaff}
+                            className="text-blue-600 hover:text-blue-800 flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-blue-50 transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              {selectedStaff.size === getAvailableStaff().length ? (
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              ) : (
+                                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                              )}
+                            </svg>
+                            <span className="font-medium">
+                              {selectedStaff.size === getAvailableStaff().length ? 'Deselect All Staff' : 'Select All Staff'}
+                            </span>
+                            <span className="text-sm text-gray-500 ml-2">
+                              ({getAvailableStaff().length} available)
+                            </span>
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="flex-1 overflow-y-auto mb-4">
+                        {getAvailableStaff().length === 0 ? (
+                          <p className="text-gray-500 text-center py-4">
+                            All staff members have been added to this week.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {getAvailableStaff().map(staff => (
+                              <div
+                                key={staff.id}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedStaff.has(staff.id)
+                                    ? 'bg-blue-50 border-blue-500'
+                                    : 'hover:bg-gray-50 border-gray-200'
+                                }`}
+                                onClick={() => setSelectedStaff(prev => {
                                   const newSet = new Set(prev);
                                   if (newSet.has(staff.id)) {
                                     newSet.delete(staff.id);
@@ -767,41 +779,58 @@ export default function HomePage() {
                                   }
                                   return newSet;
                                 })}
-                                className="h-4 w-4 text-blue-600"
-                              />
-                              <div>
-                                <div className="font-medium">{staff.name}</div>
-                                <div className="text-sm text-gray-500">{staff.role}</div>
+                              >
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedStaff.has(staff.id)}
+                                    onChange={() => setSelectedStaff(prev => {
+                                      const newSet = new Set(prev);
+                                      if (newSet.has(staff.id)) {
+                                        newSet.delete(staff.id);
+                                      } else {
+                                        newSet.add(staff.id);
+                                      }
+                                      return newSet;
+                                    })}
+                                    className="h-4 w-4 text-blue-600"
+                                  />
+                                  <div>
+                                    <div className="font-medium">{staff.name}</div>
+                                    <div className="text-sm text-gray-500">{staff.role}</div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t">
-                    <button
-                      onClick={() => {
-                        setShowBulkAddModal(false);
-                        setSelectedStaff(new Set());
-                      }}
-                      className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleBulkAddStaff}
-                      disabled={selectedStaff.size === 0}
-                      className={`px-4 py-2 rounded ${
-                        selectedStaff.size === 0
-                          ? 'bg-gray-300 cursor-not-allowed'
-                          : 'bg-blue-500 text-white hover:bg-blue-600'
-                      }`}
-                    >
-                      Add Selected Staff ({selectedStaff.size})
-                    </button>
-                  </div>
+                      <div className="flex justify-end gap-3 pt-4 border-t">
+                        <button
+                          onClick={() => {
+                            setShowBulkAddModal(false);
+                            setSelectedStaff(new Set());
+                            setStaffSearchTerm('');
+                          }}
+                          className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleBulkAddStaff}
+                          disabled={selectedStaff.size === 0}
+                          className={`px-6 py-2 rounded-lg text-white ${
+                            selectedStaff.size === 0
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-blue-500 hover:bg-blue-600'
+                          }`}
+                        >
+                          Add Selected Staff ({selectedStaff.size})
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
