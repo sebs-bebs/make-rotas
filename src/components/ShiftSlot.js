@@ -158,9 +158,9 @@ export default function ShiftSlot({
                     {/* Comment Section */}
                     <div className="mt-2">
                         {comment ? (
-                            <div className="bg-blue-50 p-2 rounded text-sm mb-1 relative group">
-                                <p className="pr-6">{comment.text}</p>
-                                <span className="text-xs text-gray-500">{formatTimestamp(comment.timestamp)}</span>
+                            <div className="bg-blue-50 p-2 rounded text-sm mb-1 relative group max-w-[120px]">
+                                <p className="pr-6 truncate">{comment.text}</p>
+                                <span className="text-xs text-gray-500 block truncate">{formatTimestamp(comment.timestamp)}</span>
                                 <button
                                     onClick={onDeleteComment}
                                     className="absolute top-1 right-1 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -170,28 +170,30 @@ export default function ShiftSlot({
                             </div>
                         ) : showCommentInput ? (
                             <form onSubmit={handleCommentSubmit} className="mt-1">
-                                <div className="flex gap-1">
+                                <div className="flex flex-col gap-1 max-w-[120px]">
                                     <input
                                         type="text"
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
                                         placeholder="Add a comment..."
-                                        className="flex-1 px-2 py-1 text-sm border rounded"
+                                        className="w-full px-2 py-1 text-sm border rounded"
                                         autoFocus
                                     />
-                                    <button
-                                        type="submit"
-                                        className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                                    >
-                                        Add
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCommentInput(false)}
-                                        className="bg-transparent text-gray-700 hover:text-gray-600 font-regular py-2 px-4 rounded-full text-sm hover:underline"
-                                    >
-                                        Cancel
-                                    </button>
+                                    <div className="flex gap-1">
+                                        <button
+                                            type="submit"
+                                            className="flex-1 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                        >
+                                            Add
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCommentInput(false)}
+                                            className="flex-1 bg-transparent text-gray-700 hover:text-gray-600 font-regular py-1 px-2 rounded text-sm hover:underline"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         ) : (

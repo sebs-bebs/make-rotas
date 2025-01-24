@@ -497,70 +497,77 @@ export default function HomePage() {
       {/* Rota Tab Content */}
       {activeTab === 'rota' && (
         <div className="flex flex-col gap-4">
-          {/* Current Week Info */}
-          <div className="text-lg font-semibold text-gray-800">
-            Week: {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[0]), 'dd/MM/yyyy')} to{' '}
-            {formatDateWithAbbreviatedMonth(new Date(currentWeek.days[6]), 'dd/MM/yyyy')}
-          </div>
-
           {/* Table section */}
           <div className="mt-4 overflow-x-auto">
             {/* Week Navigation Controls */}
-            <div className="flex items-center gap-1 mb-4">
-              <button
-                onClick={() => {
-                  if (currentWeekIndex === 0) {
-                    addWeek('previous');
-                  }
-                  setCurrentWeekIndex(prev => Math.max(0, prev - 1));
-                }}
-                className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-              </button>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => {
+                      if (currentWeekIndex === 0) {
+                        addWeek('previous');
+                      }
+                      setCurrentWeekIndex(prev => Math.max(0, prev - 1));
+                    }}
+                    className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
 
-              <button
-                onClick={() => {
-                  if (currentWeekIndex >= weeks.length - 1) {
-                    addWeek('next');
-                  }
-                  setCurrentWeekIndex(prev => prev + 1);
-                }}
-                className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                </svg>
-              </button>
+                  <button
+                    onClick={() => {
+                      if (currentWeekIndex >= weeks.length - 1) {
+                        addWeek('next');
+                      }
+                      setCurrentWeekIndex(prev => prev + 1);
+                    }}
+                    className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
 
-              <button
-                onClick={handleGoToCurrentWeek}
-                className="h-8 px-3 rounded-full bg-transparent border border-gray-600 text-gray-600 hover:border-gray-700 hover:text-gray-700 text-sm font-medium ml-4"
-              >
-                Current Week
-              </button>
+                  <button
+                    onClick={handleGoToCurrentWeek}
+                    className="h-8 px-3 rounded-full bg-transparent border border-gray-600 text-gray-600 hover:border-gray-700 hover:text-gray-700 text-sm font-medium ml-4"
+                  >
+                    Current Week
+                  </button>
+                </div>
+
+                <div className="text-lg font-semibold text-gray-800">
+                  {(() => {
+                    const startYear = new Date(currentWeek.days[0]).getFullYear();
+                    const endYear = new Date(currentWeek.days[6]).getFullYear();
+                    return startYear === endYear ? startYear : `${startYear}/${endYear}`;
+                  })()}
+                </div>
+              </div>
+
+              <div className="h-6 w-px bg-gray-300 mx-4"></div>
+
+              <div className="relative flex-1 min-w-[200px]">
+                <input
+                  type="text"
+                  value={rotaStaffSearchTerm}
+                  onChange={(e) => setRotaStaffSearchTerm(e.target.value)}
+                  placeholder="Search staff by name or role..."
+                  className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto">
               <div className="flex flex-col h-full">
-                <div className="p-4 border-b">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={rotaStaffSearchTerm}
-                      onChange={(e) => setRotaStaffSearchTerm(e.target.value)}
-                      placeholder="Search staff by name or role..."
-                      className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
                 <table id="rota-table" className="min-w-full bg-white border border-gray-300">
                   <thead className="bg-gray-50 sticky top-0 z-20">
                     <tr>
@@ -702,7 +709,7 @@ export default function HomePage() {
                     <div className="text-center py-8">
                       <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-yellow-600">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                          <path fillRule="evenodd" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                         </svg>
                       </div>
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No Staff Members Found</h3>
