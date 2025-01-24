@@ -1,7 +1,7 @@
 // src/components/StaffInput.js
 'use client';
 import React, { useState } from 'react';
-import Button from './Button';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function StaffInput({ onAddStaff }) {
   const [firstName, setFirstName] = useState('');
@@ -35,9 +35,12 @@ export default function StaffInput({ onAddStaff }) {
           className="border p-2 rounded-md"
         />
       </div>
-      <Button onClick={handleAdd}>
-        Add Staff Member
-      </Button>
+      <button 
+        onClick={handleAdd}
+        className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
+      >
+        Add Staff
+      </button>
     </div>
   );
 }

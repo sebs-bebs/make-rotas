@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import Button from './Button';
 import StaffManagementModal from './StaffManagementModal';
 import StaffImport from './StaffImport';
 
@@ -26,9 +25,12 @@ export default function StaffManagement({ staffList, onAddStaff, onRemoveStaff }
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Staff Management</h2>
         <div className="flex gap-2">
-          <Button onClick={() => setIsModalOpen(true)} className="bg-blue-500">
-            Add New Staff
-          </Button>
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
+          >
+            Add Staff Member
+          </button>
         </div>
       </div>
 
@@ -113,12 +115,12 @@ export default function StaffManagement({ staffList, onAddStaff, onRemoveStaff }
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Button
+                  <button
                     onClick={() => onRemoveStaff(staff.id)}
-                    className="text-red-600 hover:text-red-900"
+                    className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
                   >
                     Remove
-                  </Button>
+                  </button>
                 </td>
               </tr>
             ))}

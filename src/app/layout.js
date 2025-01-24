@@ -1,7 +1,8 @@
 // src/app/layout.js
+import { Inter } from 'next/font/google';
 import './globals.css';
+import { Toaster } from 'react-hot-toast';
 import React from 'react';
-import Button from '@/components/Button'; // Import the Button component
 
 export const metadata = {
   title: 'Make Rotas',
@@ -12,6 +13,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-gray-100">
+        <Toaster position="bottom-right" />
         <header className="bg-white shadow px-6 pt-2.5 pb-2 rounded-md mb-4 flex justify-between items-center">
           <h1 className="text-0.5xl font-bold text-primary">Make Rotas</h1>
           {/* Add the navigation buttons here */}
@@ -22,7 +24,7 @@ export default function RootLayout({ children }) {
         </main>
         <footer className="bg-white border-t p-4 text-center rounded-md mt-4">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} Make Rotas
+            {new Date().getFullYear()} Make Rotas
           </p>
         </footer>
       </body>

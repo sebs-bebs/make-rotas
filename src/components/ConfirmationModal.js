@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Button from './Button';
 
 export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, message }) {
   if (!isOpen) return null;
@@ -11,22 +10,22 @@ export default function ConfirmationModal({ isOpen, onClose, onConfirm, title, m
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">{title}</h2>
         <p className="mb-6 text-gray-600">{message}</p>
-        <div className="flex justify-end gap-4">
-          <Button 
+        <div className="flex justify-end gap-0.5">
+          <button 
             onClick={onClose}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+            className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
           >
             Cancel
-          </Button>
-          <Button 
+          </button>
+          <button 
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className="bg-red-500 hover:bg-red-600 text-white"
+            className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
           >
             Confirm
-          </Button>
+          </button>
         </div>
       </div>
     </div>

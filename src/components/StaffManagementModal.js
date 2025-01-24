@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import Button from './Button';
 
 export default function StaffManagementModal({ isOpen, onClose, onAddStaff }) {
   const [staffData, setStaffData] = useState({
@@ -160,12 +159,18 @@ export default function StaffManagementModal({ isOpen, onClose, onAddStaff }) {
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
-            <Button onClick={onClose} className="bg-gray-500">
+            <button 
+              onClick={onClose} 
+              className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
+            >
               Cancel
-            </Button>
-            <Button type="submit" className="bg-blue-500">
+            </button>
+            <button 
+              type="submit" 
+              className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2 px-4 rounded-full"
+            >
               Add Staff Member
-            </Button>
+            </button>
           </div>
         </form>
       </div>
