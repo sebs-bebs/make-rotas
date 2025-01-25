@@ -1,29 +1,26 @@
-import { Hero } from '@/components/ui/hero-with-image-text-and-two-buttons';
+'use client';
 
 const LaunchPage = () => {
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col items-center">
-      {/* Hero Section */}
-      <Hero />
-
-      {/* Features Section */}
-      <main className="container mx-auto px-4 py-10 text-gray-700">
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Why Choose Make Rotas?</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Drag-and-drop shift assignment for ease.</li>
-            <li>Customizable shift times and remarks.</li>
-            <li>Weekly hour calculations for efficiency.</li>
-            <li>Responsive design for access on any device.</li>
-          </ul>
-        </section>
-
-        {/* Call to Action */}
-        <section className="text-center">
-          <h2 className="text-2xl font-semibold mb-4">Get Started Today!</h2>
-          {/* Add any additional content for the Call to Action section here */}
-        </section>
-      </main>
+    <div className="bg-white w-full min-h-screen p-4">
+      <div className="w-full flex flex-row gap-4">
+        <div className="flex-1 mx-10 mt-10">
+          {/* Left column content */}
+          <h1 className="text-3xl font-bold text-gray-600">Take Control of Your Team's Schedule Today</h1>
+          <h2 className="text-xl font-medium text-gray-900 mt-4">An intuitive interface that makes shift planning easier than ever before</h2>
+          <h3 className="text-lg font-regular text-gray-700 mt-4">💼 500+ Hours Saved Monthly by Managers Like You</h3>
+          <h3 className="text-lg font-regular text-gray-700 mt-2">🎯 Cut Rota Planning Time by Over 60%</h3>
+          <button className="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-8 rounded-full mt-4">Try Now</button>
+        </div>
+        <div className="flex-1">
+          {/* Right column content */}
+          <img 
+            src="/assets/images/hero_image.png"
+            alt="Rota Table"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
     </div>
   );
 };

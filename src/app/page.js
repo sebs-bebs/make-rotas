@@ -9,22 +9,6 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { formatDateWithAbbreviatedMonth } from '../utils/dateFormatter';
 import { saveAsImage } from '../utils/saveAsImage';
 
-const generateWeekDays = (startDate) => {
-  const days = [];
-  const start = new Date(startDate);
-
-  // Find the first Monday before or on the start date
-  const firstMonday = new Date(start);
-  firstMonday.setDate(firstMonday.getDate() - ((firstMonday.getDay() + 6) % 7));
-
-  for (let i = 0; i < 7; i++) {
-    const currentDate = new Date(firstMonday);
-    currentDate.setDate(currentDate.getDate() + i);
-    days.push(currentDate.toISOString().split('T')[0]);
-  }
-  return days;
-};
-
 const generateUniqueKey = () => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
@@ -34,22 +18,78 @@ const createWeeklyStaffId = (staffId, weekId) => {
   return `staff-${staffId}-week-${weekId}`;
 };
 
-export default function HomePage() {
-  // Initialize first week with current date
-  const initialWeek = {
-    id: generateUniqueKey(),
-    startDate: new Date().toISOString().split('T')[0],
-    staff: [],
-    days: generateWeekDays(new Date().toISOString().split('T')[0]),
-  };
+// Date utility functions
+const getMonday = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  let day = d.getDay();
+  if (day === 0) day = 7; // Convert Sunday from 0 to 7
+  const diff = d.getDate() - day + 1; // Always calculate from Monday (1)
+  d.setDate(diff);
+  return d;
+};
 
-  const [weeks, setWeeks] = useState([initialWeek]);
-  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const generateWeekDays = (startDate) => {
+  const monday = getMonday(startDate);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const day = addDays(monday, i);
+    days.push(day.toISOString().split('T')[0]);
+  }
+  return days;
+};
+
+const createWeek = (startDate) => {
+  const monday = getMonday(startDate);
+  return {
+    id: generateUniqueKey(),
+    startDate: monday.toISOString().split('T')[0],
+    staff: [],
+    days: generateWeekDays(monday)
+  };
+};
+
+const isSameDay = (date1, date2) => {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+};
+
+const renderWeekHeader = (week) => {
+  const days = week.days.map(day => new Date(day));
+  const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  
+  return (
+    <tr className="bg-gray-50">
+      <th className="px-4 py-2 text-left">STAFF MEMBER</th>
+      {days.map((day, index) => (
+        <th key={day.toISOString()} className="px-4 py-2 text-center">
+          <div className="font-semibold">{dayNames[index]}</div>
+          <div className="text-sm text-gray-600">
+            {formatDateWithAbbreviatedMonth(day, 'MMM dd')}
+          </div>
+        </th>
+      ))}
+    </tr>
+  );
+};
+
+export default function HomePage() {
+  // State declarations
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(2); // Start in middle of 5 weeks
   const [allStaff, setAllStaff] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [remarks, setRemarks] = useState([]);
   const [activeTab, setActiveTab] = useState('rota');
-  const [comments, setComments] = useState({});  // Format: { 'weekId-staffId-dayIndex': { text: 'comment', timestamp: 'date' } }
+  const [comments, setComments] = useState({});
   const [showBulkAddModal, setShowBulkAddModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(new Set());
   const [selectedStaffToRemove, setSelectedStaffToRemove] = useState(new Set());
@@ -59,6 +99,87 @@ export default function HomePage() {
   const [staffSearchTerm, setStaffSearchTerm] = useState('');
   const [rotaStaffSearchTerm, setRotaStaffSearchTerm] = useState('');
 
+  // Initialize weeks state with localStorage support
+  const [weeks, setWeeks] = useState(() => {
+    const storedWeeks = localStorage.getItem('rota-weeks');
+    if (storedWeeks) {
+      try {
+        const parsedWeeks = JSON.parse(storedWeeks);
+        if (Array.isArray(parsedWeeks) && parsedWeeks.length > 0) {
+          // Ensure all weeks start on Monday and are properly ordered
+          const validWeeks = parsedWeeks
+            .map(week => createWeek(week.startDate))
+            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+          return validWeeks.slice(0, 5); // Keep only 5 weeks
+        }
+      } catch (error) {
+        console.error('Error parsing stored weeks:', error);
+      }
+    }
+
+    // Initialize with 5 weeks centered on current week
+    const today = new Date();
+    const currentMonday = getMonday(today);
+    return Array.from({ length: 5 }, (_, i) => 
+      createWeek(addDays(currentMonday, (i - 2) * 7))
+    );
+  });
+
+  // Simple week navigation functions
+  const handlePreviousWeek = useCallback(() => {
+    if (currentWeekIndex === 0) {
+      setWeeks(prevWeeks => {
+        const firstWeekDate = new Date(prevWeeks[0].startDate);
+        const newWeekDate = addDays(firstWeekDate, -7);
+        return [
+          createWeek(newWeekDate),
+          ...prevWeeks.slice(0, -1) // Remove last week to maintain 5 weeks
+        ];
+      });
+    } else {
+      setCurrentWeekIndex(prev => prev - 1);
+    }
+  }, [currentWeekIndex]);
+
+  const handleNextWeek = useCallback(() => {
+    if (currentWeekIndex === weeks.length - 1) {
+      setWeeks(prevWeeks => {
+        const lastWeekDate = new Date(prevWeeks[prevWeeks.length - 1].startDate);
+        const newWeekDate = addDays(lastWeekDate, 7);
+        return [
+          ...prevWeeks.slice(1), // Remove first week to maintain 5 weeks
+          createWeek(newWeekDate)
+        ];
+      });
+    } else {
+      setCurrentWeekIndex(prev => prev + 1);
+    }
+  }, [currentWeekIndex, weeks.length]);
+
+  const handleGoToCurrentWeek = useCallback(() => {
+    const today = new Date();
+    const currentMonday = getMonday(today);
+    
+    // Reset to 5 weeks centered on current week
+    setWeeks(() => 
+      Array.from({ length: 5 }, (_, i) => 
+        createWeek(addDays(currentMonday, (i - 2) * 7))
+      )
+    );
+    setCurrentWeekIndex(2); // Middle week
+  }, []);
+
+  // Save weeks to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('rota-weeks', JSON.stringify(weeks));
+  }, [weeks]);
+
+  // Initialize on mount
+  useEffect(() => {
+    handleGoToCurrentWeek();
+  }, []); // Run only once on mount
+
+  // Persistence effects
   useEffect(() => {
     const storedStaffList = localStorage.getItem('staffList');
     if (storedStaffList) {
@@ -91,18 +212,6 @@ export default function HomePage() {
   useEffect(() => {
     localStorage.setItem('rota-comments', JSON.stringify(comments));
   }, [comments]);
-
-  useEffect(() => {
-    // Create weeks automatically when reaching penultimate position
-    if (currentWeekIndex >= weeks.length - 2) {
-      // Create next week
-      addWeek('next');
-    }
-    if (currentWeekIndex <= 1) {
-      // Create previous week
-      addWeek('previous');
-    }
-  }, [currentWeekIndex, weeks.length]);
 
   const handleAddStaff = (newStaffData) => {
     const staffId = generateUniqueKey();
@@ -239,128 +348,6 @@ export default function HomePage() {
     });
   }, []);
 
-  const addWeek = (direction = 'next') => {
-    const newWeekId = generateUniqueKey();
-    const lastWeek = weeks[direction === 'next' ? weeks.length - 1 : 0];
-    const newStartDate = new Date(lastWeek.startDate);
-    
-    // Add or subtract 7 days based on direction
-    newStartDate.setDate(newStartDate.getDate() + (direction === 'next' ? 7 : -7));
-    
-    const newWeek = {
-      id: newWeekId,
-      startDate: newStartDate.toISOString(),
-      staff: [],
-      days: Array.from({ length: 7 }, (_, i) => {
-        const day = new Date(newStartDate);
-        day.setDate(day.getDate() + i);
-        return day.toISOString();
-      }),
-    };
-
-    setWeeks(prevWeeks => {
-      if (direction === 'next') {
-        return [...prevWeeks, newWeek];
-      } else {
-        return [newWeek, ...prevWeeks];
-      }
-    });
-
-    // If adding a previous week, we need to adjust currentWeekIndex
-    if (direction === 'previous') {
-      setCurrentWeekIndex(prev => prev + 1);
-    }
-  };
-
-  // Function to handle moving to the previous week
-  const handlePreviousWeek = () => {
-    setCurrentWeekIndex((prev) => Math.max(0, prev - 1));
-  };
-
-  // Function to handle moving to the next week
-  const handleNextWeek = () => {
-    setCurrentWeekIndex((prev) => Math.min(weeks.length - 1, prev + 1));
-  };
-
-  // Function to handle moving to the current week
-  const handleCurrentWeek = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const currentWeekIndex = weeks.findIndex(
-      (week) =>
-        new Date(week.startDate) <= new Date(today) &&
-        new Date(week.days[6]) >= new Date(today)
-    );
-
-    if (currentWeekIndex !== -1) {
-      setCurrentWeekIndex(currentWeekIndex);
-    } else {
-      // Find the nearest week to the current date
-      let nearestWeekIndex = 0;
-      let minDateDiff = Infinity;
-      weeks.forEach((week, index) => {
-        const diff = Math.abs(
-          new Date(week.startDate).getTime() - new Date(today).getTime()
-        );
-        if (diff < minDateDiff) {
-          minDateDiff = diff;
-          nearestWeekIndex = index;
-        }
-      });
-      setCurrentWeekIndex(nearestWeekIndex);
-    }
-  };
-
-  const removeWeek = (weekId) => {
-    setWeeks((prevWeeks) => prevWeeks.filter((week) => week.id !== weekId));
-  };
-
-  const getCurrentWeekIndex = useCallback(() => {
-    const today = new Date();
-    return weeks.findIndex(week => {
-      const weekStart = new Date(week.startDate);
-      const weekEnd = new Date(week.days[6]);
-      return today >= weekStart && today <= weekEnd;
-    });
-  }, [weeks]);
-
-  const handleGoToCurrentWeek = () => {
-    const currentWeekIdx = getCurrentWeekIndex();
-    if (currentWeekIdx !== -1) {
-      setCurrentWeekIndex(currentWeekIdx);
-    } else {
-      // If current week doesn't exist, create it
-      const lastWeek = weeks[weeks.length - 1];
-      const lastWeekEnd = new Date(lastWeek.days[6]);
-      const today = new Date();
-      
-      // If today is after the last week, add weeks until we reach current week
-      if (today > lastWeekEnd) {
-        let tempDate = new Date(lastWeek.startDate);
-        while (tempDate <= today) {
-          tempDate.setDate(tempDate.getDate() + 7);
-          addWeek('next');
-        }
-        setCurrentWeekIndex(weeks.length); // Set to the newly added week
-      } else {
-        // If today is before the first week, add weeks until we reach current week
-        const firstWeek = weeks[0];
-        const firstWeekStart = new Date(firstWeek.startDate);
-        if (today < firstWeekStart) {
-          let tempDate = new Date(firstWeek.startDate);
-          let weeksToAdd = 0;
-          while (tempDate > today) {
-            tempDate.setDate(tempDate.getDate() - 7);
-            weeksToAdd++;
-          }
-          for (let i = 0; i < weeksToAdd; i++) {
-            addWeek('previous');
-          }
-          setCurrentWeekIndex(weeksToAdd);
-        }
-      }
-    }
-  };
-
   const handleBulkAddStaff = () => {
     const currentWeek = weeks[currentWeekIndex];
     const staffToAdd = Array.from(selectedStaff).map(staffId => {
@@ -393,7 +380,7 @@ export default function HomePage() {
   const handleRemoveSelectedStaff = () => {
     setWeeks(prevWeeks => {
       return prevWeeks.map(week => {
-        if (week.id === currentWeek.id) {
+        if (week.id === weeks[currentWeekIndex].id) {
           return {
             ...week,
             staff: week.staff.filter(staff => !selectedStaffToRemove.has(staff.id))
@@ -434,7 +421,7 @@ export default function HomePage() {
   const handleRemoveAllStaff = () => {
     setWeeks(prevWeeks => {
       return prevWeeks.map(week => {
-        if (week.id === currentWeek.id) {
+        if (week.id === weeks[currentWeekIndex].id) {
           return {
             ...week,
             staff: []
@@ -464,7 +451,7 @@ export default function HomePage() {
   };
 
   // Ensure we always have a valid currentWeek
-  const currentWeek = weeks[currentWeekIndex] || initialWeek;
+  const currentWeek = weeks[currentWeekIndex] || weeks[0];
 
   return (
     <div className="container mx-auto px-4 pt-1 pb-2">
@@ -504,30 +491,20 @@ export default function HomePage() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center">
                   <button
-                    onClick={() => {
-                      if (currentWeekIndex === 0) {
-                        addWeek('previous');
-                      }
-                      setCurrentWeekIndex(prev => Math.max(0, prev - 1));
-                    }}
+                    onClick={handlePreviousWeek}
                     className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                     </svg>
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (currentWeekIndex >= weeks.length - 1) {
-                        addWeek('next');
-                      }
-                      setCurrentWeekIndex(prev => prev + 1);
-                    }}
+                    onClick={handleNextWeek}
                     className="h-8 flex items-center justify-center p-1.5 bg-transparent text-gray-500 hover:text-gray-600"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
                   </button>
 
@@ -559,7 +536,7 @@ export default function HomePage() {
                   className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                   </svg>
                 </div>
@@ -570,25 +547,7 @@ export default function HomePage() {
               <div className="flex flex-col h-full">
                 <table id="rota-table" className="min-w-full bg-white border border-gray-300">
                   <thead className="bg-gray-50 sticky top-0 z-20">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-30 border-b">
-                        Staff Member
-                      </th>
-                      {currentWeek.days.map((day, index) => (
-                        <th
-                          key={index}
-                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b ${
-                            index === 5 || index === 6 ? 'bg-gray-100' : 'bg-gray-50'
-                          }`}
-                        >
-                          {new Date(day).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            weekday: 'short',
-                          })}
-                        </th>
-                      ))}
-                    </tr>
+                    {currentWeek && renderWeekHeader(currentWeek)}
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {currentWeek.staff
