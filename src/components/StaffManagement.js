@@ -7,10 +7,12 @@ export default function StaffManagement({ staffList, onAddStaff, onRemoveStaff }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredStaff = staffList.filter(staff => 
-    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.role?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStaff = staffList.filter(staff => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const nameMatch = staff.name?.toLowerCase()?.includes(searchTermLower) || false;
+    const roleMatch = staff.role?.toLowerCase()?.includes(searchTermLower) || false;
+    return nameMatch || roleMatch;
+  });
 
   const handleImport = (importedStaff) => {
     // Add each imported staff member

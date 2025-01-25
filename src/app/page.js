@@ -82,20 +82,27 @@ const WeekHeader = React.memo(({ week }) => {
   const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
   return (
     <tr className="bg-gray-50">
-      <th className="px-4 py-2 text-left">STAFF MEMBER</th>
+      <th className="sticky left-0 z-50 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+        Staff Name
+      </th>
       {week.days.map((day, index) => {
         const dateObj = new Date(day);
         dateObj.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
-        const formattedDate = new Intl.DateTimeFormat('en-GB', {
-          month: 'short',
-          day: 'numeric',
-          timeZone: 'UTC'
-        }).format(dateObj);
-        
         return (
-          <th key={`${week.startDate}-${index}`} className="px-4 py-2 text-center">
+          <th
+            key={`${week.startDate}-${index}`}
+            className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+              index === 5 || index === 6 ? 'bg-gray-100' : 'bg-gray-50'
+            }`}
+          >
             <div className="font-semibold">{dayNames[index]}</div>
-            <div className="text-sm text-gray-600">{formattedDate}</div>
+            <div className="text-sm text-gray-600">
+              {new Intl.DateTimeFormat('en-GB', {
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'UTC'
+              }).format(dateObj)}
+            </div>
           </th>
         );
       })}
@@ -140,23 +147,27 @@ export default function HomePage() {
   const filteredStaff = useMemo(() => {
     if (!currentWeek?.staff) return [];
     
-    return currentWeek.staff.filter(staff =>
-      staff.name.toLowerCase().includes(rotaStaffSearchTerm.toLowerCase()) ||
-      staff.role?.toLowerCase().includes(rotaStaffSearchTerm.toLowerCase())
-    );
+    const searchTermLower = rotaStaffSearchTerm.toLowerCase();
+    return currentWeek.staff.filter(staff => {
+      const nameMatch = staff.name?.toLowerCase()?.includes(searchTermLower) || false;
+      const roleMatch = staff.role?.toLowerCase()?.includes(searchTermLower) || false;
+      return nameMatch || roleMatch;
+    });
   }, [currentWeek, rotaStaffSearchTerm]);
 
   const getAvailableStaff = useCallback(() => {
     if (!currentWeek) return [];
     
+    const searchTermLower = staffSearchTerm.toLowerCase();
     const availableStaff = staffList.filter(
       staff => !currentWeek.staff.some(s => s.originalStaffId === staff.id)
     );
     
-    return availableStaff.filter(staff =>
-      staff.name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-      (staff.role && staff.role.toLowerCase().includes(staffSearchTerm.toLowerCase()))
-    );
+    return availableStaff.filter(staff => {
+      const nameMatch = staff.name?.toLowerCase()?.includes(searchTermLower) || false;
+      const roleMatch = staff.role?.toLowerCase()?.includes(searchTermLower) || false;
+      return nameMatch || roleMatch;
+    });
   }, [currentWeek, staffList, staffSearchTerm]);
 
   // All useCallback hooks
@@ -571,73 +582,71 @@ export default function HomePage() {
 
             <div className="h-6 w-px bg-gray-300 mx-4"></div>
 
-            <div className="relative flex-1 min-w-[200px]">
-              <input
-                type="text"
-                value={rotaStaffSearchTerm}
-                onChange={(e) => setRotaStaffSearchTerm(e.target.value)}
-                placeholder="Search staff by name or role..."
-                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
+            <div className="relative">
+              {/* Header */}
+              <div className="sticky top-0 z-50 bg-white">
+                <table className="min-w-full border-b border-gray-300">
+                  <colgroup>
+                    <col style={{ width: '200px', minWidth: '200px' }} />
+                  </colgroup>
+                  <thead>
+                    <WeekHeader week={currentWeek} />
+                  </thead>
+                </table>
               </div>
-            </div>
-          </div>
 
-          <div className="max-h-[70vh] overflow-y-auto">
-            <div className="flex flex-col h-full">
-              <table id="rota-table" className="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden">
-                <thead className="bg-gray-50 sticky top-0 z-20">
-                  {currentWeek && <WeekHeader week={currentWeek} />}
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredStaff.map((staff) => (
-                    <tr key={`row-${currentWeek.id}-${staff.id}`} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
-                      <td className="sticky left-0 z-10 bg-white">
-                        <div className="truncate max-w-[165px] px-6 py-4 flex items-center" title={staff.name}>
-                          <input
-                            type="checkbox"
-                            checked={selectedStaffToRemove.has(staff.id)}
-                            onChange={() => toggleStaffSelection(staff.id)}
-                            className="h-4 w-4 text-blue-600 mr-2"
-                          />
-                          {staff.name}
-                        </div>
-                      </td>
-                      {currentWeek.days.map((day, dayIndex) => (
-                        <td
-                          key={`cell-${currentWeek.id}-${staff.id}-${dayIndex}`}
-                          className={`px-6 py-4 whitespace-nowrap border ${
-                            dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
-                          }`}
-                        >
-                          <ShiftSlot
-                            staffId={staff.originalStaffId}
-                            dayIndex={dayIndex}
-                            shift={staff.shifts[dayIndex] || ''}
-                            onShiftsChange={handleShiftsChange.bind(
-                              null,
-                              currentWeek.id
-                            )}
-                            staffShifts={currentWeek.staff.filter(
-                              (s) =>
-                                s.originalStaffId === staff.originalStaffId &&
-                                s.id === staff.id
-                            )}
-                            comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
-                            onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
-                            onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
-                            weekId={currentWeek.id}
-                          />
+              {/* Body */}
+              <div className="max-h-[calc(70vh-48px)] overflow-auto">
+                <table className="min-w-full border border-gray-300">
+                  <colgroup>
+                    <col style={{ width: '200px', minWidth: '200px' }} />
+                  </colgroup>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredStaff.map((staff) => (
+                      <tr key={`row-${currentWeek.id}-${staff.id}`} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
+                        <td className="sticky left-0 z-20 bg-white px-6 py-4 whitespace-nowrap border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                          <div className="truncate max-w-[165px] flex items-center" title={staff.name}>
+                            <input
+                              type="checkbox"
+                              checked={selectedStaffToRemove.has(staff.id)}
+                              onChange={() => toggleStaffSelection(staff.id)}
+                              className="h-4 w-4 text-blue-600 mr-2"
+                            />
+                            {staff.name}
+                          </div>
                         </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        {currentWeek.days.map((day, dayIndex) => (
+                          <td
+                            key={`cell-${currentWeek.id}-${staff.id}-${dayIndex}`}
+                            className={`px-6 py-4 whitespace-nowrap border ${
+                              dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
+                            }`}
+                          >
+                            <ShiftSlot
+                              staffId={staff.originalStaffId}
+                              dayIndex={dayIndex}
+                              shift={staff.shifts[dayIndex] || ''}
+                              onShiftsChange={handleShiftsChange.bind(
+                                null,
+                                currentWeek.id
+                              )}
+                              staffShifts={currentWeek.staff.filter(
+                                (s) =>
+                                  s.originalStaffId === staff.originalStaffId &&
+                                  s.id === staff.id
+                              )}
+                              comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
+                              onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
+                              onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
+                              weekId={currentWeek.id}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
