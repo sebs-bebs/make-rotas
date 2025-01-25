@@ -541,7 +541,7 @@ export default function HomePage() {
         <div className="flex flex-col gap-4">
           {/* Table section */}
           <div className="mt-4 overflow-x-auto">
-            {/* Week Navigation Controls */}
+            {/* Week Navigation Controls and Search */}
             <div className="flex items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-4">
                 <button
@@ -568,19 +568,34 @@ export default function HomePage() {
                 >
                   Current Week
                 </button>
-              </div>
 
-              <div className="text-lg font-semibold text-gray-800">
-                {(() => {
-                  if (!currentWeek?.days?.length) return '';
-                  const startYear = new Date(currentWeek.days[0]).getFullYear();
-                  const endYear = new Date(currentWeek.days[6]).getFullYear();
-                  return startYear === endYear ? startYear : `${startYear}/${endYear}`;
-                })()}
+                <div className="text-lg font-semibold text-gray-800">
+                  {(() => {
+                    if (!currentWeek?.days?.length) return '';
+                    const startYear = new Date(currentWeek.days[0]).getFullYear();
+                    const endYear = new Date(currentWeek.days[6]).getFullYear();
+                    return startYear === endYear ? startYear : `${startYear}/${endYear}`;
+                  })()}
+                </div>
+
+                <div className="h-6 w-px bg-gray-300 mx-4"></div>
+
+                <div className="relative flex-1 min-w-[200px]">
+                  <input
+                    type="text"
+                    value={rotaStaffSearchTerm}
+                    onChange={(e) => setRotaStaffSearchTerm(e.target.value)}
+                    placeholder="Search staff by name or role..."
+                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div className="h-6 w-px bg-gray-300 mx-4"></div>
 
             <div className="relative">
               {/* Header */}
