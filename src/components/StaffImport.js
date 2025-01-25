@@ -12,19 +12,26 @@ export default function StaffImport({ onImport }) {
       const lines = text.split('\n');
       
       const staffList = lines
-        .map(line => line.trim())
-        .filter(line => line.length > 0) // Skip empty lines
-        .map(line => {
+        .map((line, index) => {
+          const trimmedLine = line.trim();
+          if (trimmedLine.length === 0) return null; // Skip empty lines
+          
           // Expected format: firstName,lastName,role,email,phone
-          const [firstName, lastName, role, email, phone] = line.split(',').map(item => item.trim());
+          const parts = trimmedLine.split(',').map(item => item ? item.trim() : '');
+          
+          if (parts.length < 2) {
+            throw new Error(`Line ${index + 1}: Each line must contain at least a first name and last name`);
+          }
+
+          const [firstName, lastName, role, email, phone] = parts;
           
           if (!firstName || !lastName) {
-            throw new Error('Each line must contain at least a first name and last name');
+            throw new Error(`Line ${index + 1}: First name and last name are required`);
           }
 
           return {
-            firstName,
-            lastName,
+            id: Date.now() + Math.random(), // Generate unique ID
+            name: `${firstName} ${lastName}`,
             role: role || '',
             email: email || '',
             phone: phone || '',
@@ -39,7 +46,12 @@ export default function StaffImport({ onImport }) {
             },
             isActive: true,
           };
-        });
+        })
+        .filter(staff => staff !== null); // Remove empty lines
+
+      if (staffList.length === 0) {
+        throw new Error('No valid staff members found in the file');
+      }
 
       onImport(staffList);
       
@@ -48,6 +60,7 @@ export default function StaffImport({ onImport }) {
         fileInputRef.current.value = '';
       }
     } catch (error) {
+      console.error('Staff import error:', error);
       alert(`Error importing staff list: ${error.message}\n\nPlease ensure your file is in the correct format:\nfirstName,lastName,role,email,phone`);
     }
   };

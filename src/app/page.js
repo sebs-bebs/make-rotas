@@ -142,35 +142,55 @@ export default function HomePage() {
   });
 
   // Memoized values
-  const currentWeek = useMemo(() => weeks[currentWeekIndex] || null, [weeks, currentWeekIndex]);
+  const currentWeek = useMemo(() => {
+    const week = weeks[currentWeekIndex] || null;
+    console.log('Current week data:', week);
+    console.log('Current week staff:', week?.staff);
+    return week;
+  }, [weeks, currentWeekIndex]);
 
   const filteredStaff = useMemo(() => {
-    if (!currentWeek?.staff) return [];
+    if (!currentWeek?.staff) {
+      console.log('No staff in currentWeek:', currentWeek);
+      return [];
+    }
     
     const searchTermLower = rotaStaffSearchTerm.toLowerCase();
-    return currentWeek.staff.filter(staff => {
+    console.log('Filtering staff. Current week staff:', currentWeek.staff);
+    const filtered = currentWeek.staff.filter(staff => {
+      console.log('Checking staff member:', staff);
       const nameMatch = staff.name?.toLowerCase()?.includes(searchTermLower) || false;
       const roleMatch = staff.role?.toLowerCase()?.includes(searchTermLower) || false;
       return nameMatch || roleMatch;
     });
+    console.log('Filtered staff result:', filtered);
+    return filtered;
   }, [currentWeek, rotaStaffSearchTerm]);
 
   const getAvailableStaff = useCallback(() => {
-    if (!currentWeek) return [];
+    console.log('Getting available staff');
+    console.log('Current week:', currentWeek);
+    console.log('Staff list:', staffList);
+    console.log('All staff:', allStaff);
     
-    const searchTermLower = staffSearchTerm.toLowerCase();
-    const availableStaff = staffList.filter(
-      staff => !currentWeek.staff.some(s => s.originalStaffId === staff.id)
-    );
-    
-    return availableStaff.filter(staff => {
-      const nameMatch = staff.name?.toLowerCase()?.includes(searchTermLower) || false;
-      const roleMatch = staff.role?.toLowerCase()?.includes(searchTermLower) || false;
-      return nameMatch || roleMatch;
-    });
-  }, [currentWeek, staffList, staffSearchTerm]);
+    if (!currentWeek) {
+      console.log('No current week');
+      return [];
+    }
 
-  // All useCallback hooks
+    const weekStaff = currentWeek.staff || [];
+    console.log('Week staff:', weekStaff);
+    
+    // Return all staff that are in staffList but not in the current week
+    const availableStaff = staffList.filter(staff => {
+      const isInWeek = weekStaff.some(weekStaffMember => weekStaffMember.id === staff.id);
+      return !isInWeek;
+    });
+    
+    console.log('Available staff:', availableStaff);
+    return availableStaff;
+  }, [currentWeek, staffList]);
+
   const handlePreviousWeek = useCallback(() => {
     setCurrentWeekIndex(prev => {
       if (prev === 0) {
@@ -225,19 +245,59 @@ export default function HomePage() {
     }
   }, [weeks]);
 
-  const handleAddStaff = useCallback((newStaffData) => {
-    const staffId = generateUniqueKey();
+  const handleAddStaff = useCallback((staffData) => {
+    console.log('Adding new staff with data:', staffData);
+    
+    // Create a new staff object with a unique ID
     const newStaff = {
-      id: staffId,
-      ...newStaffData,
-      shifts: Array(7).fill(''),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: staffData.name.trim(),  // Ensure name is trimmed
+      role: staffData.role.trim()   // Ensure role is trimmed
     };
-    setStaffList(prev => [...prev, newStaff]);
-    setAllStaff(prev => [...prev, newStaff]);
+    console.log('Created new staff object:', newStaff);
+
+    // First update allStaff to ensure it's available for name lookups
+    setAllStaff(prevAllStaff => {
+      const updatedAllStaff = [...prevAllStaff, newStaff];
+      console.log('New allStaff after adding:', updatedAllStaff);
+      return updatedAllStaff;
+    });
+
+    // Update staffList
+    setStaffList(prevStaff => {
+      const updatedStaffList = [...prevStaff, newStaff];
+      console.log('New staffList after adding:', updatedStaffList);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('staffList', JSON.stringify(updatedStaffList));
+        console.log('Saved staffList to localStorage');
+      }
+      return updatedStaffList;
+    });
+
+    // Update weeks
+    setWeeks(prevWeeks => {
+      console.log('Previous weeks:', prevWeeks);
+      const updatedWeeks = prevWeeks.map(week => ({
+        ...week,
+        staff: [...(week.staff || []), { ...newStaff, shifts: Array(7).fill('') }]
+      }));
+      console.log('Updated weeks with new staff:', updatedWeeks);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rota-weeks', JSON.stringify(updatedWeeks));
+      }
+      return updatedWeeks;
+    });
   }, []);
 
   const handleRemoveStaff = useCallback((staffId) => {
-    setStaffList(prev => prev.filter(staff => staff.id !== staffId));
+    setStaffList(prev => {
+      const newList = prev.filter(staff => staff.id !== staffId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('staffList', JSON.stringify(newList));
+      }
+      return newList;
+    });
     setAllStaff(prev => prev.filter(staff => staff.id !== staffId));
   }, []);
 
@@ -386,29 +446,94 @@ export default function HomePage() {
     saveAsImage('rota-table', filename);
   }, [currentWeek]);
 
-  // useEffect hooks at the end
+  const getStaffName = useCallback((staffId) => {
+    console.log('Getting staff name for ID:', staffId);
+    console.log('Current allStaff:', allStaff);
+    const staff = allStaff.find(s => s.id === staffId);
+    console.log('Found staff:', staff);
+    if (!staff) {
+      console.log('No staff found with ID:', staffId);
+      return '';
+    }
+    console.log('Returning staff name:', staff.name);
+    return staff.name || '';
+  }, [allStaff]);
+
+  const handleAddStaffToWeek = useCallback((staffMember) => {
+    console.log('Adding staff to week:', staffMember);
+    setWeeks(prevWeeks => {
+      const updatedWeeks = [...prevWeeks];
+      const weekIndex = currentWeekIndex;
+      
+      if (!updatedWeeks[weekIndex].staff) {
+        updatedWeeks[weekIndex].staff = [];
+      }
+      
+      updatedWeeks[weekIndex].staff.push({
+        ...staffMember,
+        shifts: Array(7).fill('')
+      });
+      
+      console.log('Updated weeks after adding staff:', updatedWeeks);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rota-weeks', JSON.stringify(updatedWeeks));
+      }
+      return updatedWeeks;
+    });
+  }, [currentWeekIndex]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || isLoading) return;
+    localStorage.setItem('staffList', JSON.stringify(staffList));
+  }, [staffList, isLoading]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || isLoading) return;
+    localStorage.setItem('rota-weeks', JSON.stringify(weeks));
+  }, [weeks, isLoading]);
+
   useEffect(() => {
     const loadStoredData = () => {
       if (typeof window === 'undefined') return;
 
       try {
+        const storedStaffList = localStorage.getItem('staffList');
+        console.log('Loaded staffList from localStorage:', storedStaffList);
+        if (storedStaffList) {
+          const parsedStaffList = JSON.parse(storedStaffList);
+          console.log('Parsed staffList:', parsedStaffList);
+          setStaffList(parsedStaffList);
+          setAllStaff(parsedStaffList);
+        } else {
+          // Set default empty arrays if no data
+          setStaffList([]);
+          setAllStaff([]);
+        }
+        
         const storedWeeks = localStorage.getItem('rota-weeks');
+        console.log('Loaded weeks from localStorage:', storedWeeks);
         if (storedWeeks) {
           const parsedWeeks = JSON.parse(storedWeeks);
+          console.log('Parsed weeks:', parsedWeeks);
           if (Array.isArray(parsedWeeks) && parsedWeeks.length > 0) {
             const validWeeks = parsedWeeks.map(week => ({
               ...week,
               days: generateWeekDays(week.startDate)
             })).slice(-MAX_STORED_WEEKS);
+            console.log('Setting weeks to:', validWeeks);
             setWeeks(validWeeks);
           }
-        }
-
-        const storedStaffList = localStorage.getItem('staffList');
-        if (storedStaffList) {
-          const parsedStaffList = JSON.parse(storedStaffList);
-          setStaffList(parsedStaffList);
-          setAllStaff(parsedStaffList);
+        } else {
+          // Initialize with empty weeks if none exist
+          const initialWeeks = Array.from({ length: 7 }, (_, i) => {
+            const weekStart = addDays(new Date(), (i - 2) * 7);
+            return createWeek(weekStart);
+          }).map(week => ({
+            ...week,
+            staff: []
+          }));
+          setWeeks(initialWeeks);
+          localStorage.setItem('rota-weeks', JSON.stringify(initialWeeks));
         }
         
         const storedRemarks = localStorage.getItem('allRemarks');
@@ -422,6 +547,17 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('Error loading stored data:', error);
+        // Set default values on error
+        setStaffList([]);
+        setAllStaff([]);
+        const initialWeeks = Array.from({ length: 7 }, (_, i) => {
+          const weekStart = addDays(new Date(), (i - 2) * 7);
+          return createWeek(weekStart);
+        }).map(week => ({
+          ...week,
+          staff: []
+        }));
+        setWeeks(initialWeeks);
       } finally {
         setIsLoading(false);
       }
@@ -429,11 +565,6 @@ export default function HomePage() {
 
     loadStoredData();
   }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || isLoading) return;
-    localStorage.setItem('rota-weeks', JSON.stringify(weeks));
-  }, [weeks, isLoading]);
 
   // Loading state
   if (isLoading || !currentWeek) {
@@ -460,47 +591,6 @@ export default function HomePage() {
     );
 
     setStaffToRemove(null);
-  };
-
-  const handleAddStaffToWeek = (staffId) => {
-    const staffToAdd = allStaff.find((staff) => staff.id === staffId);
-    if (!staffToAdd) return;
-
-    setWeeks((prevWeeks) =>
-      prevWeeks.map((week, index) => {
-        if (index === currentWeekIndex) {
-          // Only add if staff is not already in the week
-          if (!week.staff.some((s) => s.originalStaffId === staffId)) {
-            const weeklyStaffId = createWeeklyStaffId(staffId, week.id);
-            const staffWithShifts = {
-              ...staffToAdd,
-              id: weeklyStaffId,
-              originalStaffId: staffId, // Keep track of the original staff ID
-              shifts: Array(7).fill(''),
-            };
-            return {
-              ...week,
-              staff: [...week.staff, staffWithShifts],
-            };
-          }
-        }
-        return week;
-      })
-    );
-  };
-
-  const handleRemoveStaffFromWeek = (weeklyStaffId) => {
-    setWeeks((prevWeeks) =>
-      prevWeeks.map((week, index) => {
-        if (index === currentWeekIndex) {
-          return {
-            ...week,
-            staff: week.staff.filter((staff) => staff.id !== weeklyStaffId),
-          };
-        }
-        return week;
-      })
-    );
   };
 
   return (
@@ -617,48 +707,53 @@ export default function HomePage() {
                     <col style={{ width: '200px', minWidth: '200px' }} />
                   </colgroup>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredStaff.map((staff) => (
-                      <tr key={`row-${currentWeek.id}-${staff.id}`} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
-                        <td className="sticky left-0 z-20 bg-white px-6 py-4 whitespace-nowrap border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                          <div className="truncate max-w-[165px] flex items-center" title={staff.name}>
-                            <input
-                              type="checkbox"
-                              checked={selectedStaffToRemove.has(staff.id)}
-                              onChange={() => toggleStaffSelection(staff.id)}
-                              className="h-4 w-4 text-blue-600 mr-2"
-                            />
-                            {staff.name}
-                          </div>
-                        </td>
-                        {currentWeek.days.map((day, dayIndex) => (
-                          <td
-                            key={`cell-${currentWeek.id}-${staff.id}-${dayIndex}`}
-                            className={`px-6 py-4 whitespace-nowrap border ${
-                              dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
-                            }`}
-                          >
-                            <ShiftSlot
-                              staffId={staff.originalStaffId}
-                              dayIndex={dayIndex}
-                              shift={staff.shifts[dayIndex] || ''}
-                              onShiftsChange={handleShiftsChange.bind(
-                                null,
-                                currentWeek.id
-                              )}
-                              staffShifts={currentWeek.staff.filter(
-                                (s) =>
-                                  s.originalStaffId === staff.originalStaffId &&
-                                  s.id === staff.id
-                              )}
-                              comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
-                              onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
-                              onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
-                              weekId={currentWeek.id}
-                            />
+                    {filteredStaff.map((staff) => {
+                      console.log('Rendering staff member:', staff);
+                      const staffName = staff.name || getStaffName(staff.id);
+                      console.log('Staff name to display:', staffName);
+                      return (
+                        <tr key={`row-${currentWeek.id}-${staff.id}`} className={selectedStaffToRemove.has(staff.id) ? 'bg-red-50' : ''}>
+                          <td className="sticky left-0 z-20 bg-white px-6 py-4 whitespace-nowrap border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                            <div className="truncate max-w-[165px] flex items-center" title={staffName}>
+                              <input
+                                type="checkbox"
+                                checked={selectedStaffToRemove.has(staff.id)}
+                                onChange={() => toggleStaffSelection(staff.id)}
+                                className="h-4 w-4 text-blue-600 mr-2"
+                              />
+                              {staffName}
+                            </div>
                           </td>
-                        ))}
-                      </tr>
-                    ))}
+                          {currentWeek.days.map((day, dayIndex) => (
+                            <td
+                              key={`cell-${currentWeek.id}-${staff.id}-${dayIndex}`}
+                              className={`px-6 py-4 whitespace-nowrap border ${
+                                dayIndex === 5 || dayIndex === 6 ? 'bg-gray-50' : ''
+                              }`}
+                            >
+                              <ShiftSlot
+                                staffId={staff.originalStaffId}
+                                dayIndex={dayIndex}
+                                shift={staff.shifts[dayIndex] || ''}
+                                onShiftsChange={handleShiftsChange.bind(
+                                  null,
+                                  currentWeek.id
+                                )}
+                                staffShifts={currentWeek.staff.filter(
+                                  (s) =>
+                                    s.originalStaffId === staff.originalStaffId &&
+                                    s.id === staff.id
+                                )}
+                                comment={comments[`${currentWeek.id}-${staff.id}-${dayIndex}`]}
+                                onAddComment={(comment) => handleAddComment(currentWeek.id, staff.id, dayIndex, comment)}
+                                onDeleteComment={() => handleDeleteComment(currentWeek.id, staff.id, dayIndex)}
+                                weekId={currentWeek.id}
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
