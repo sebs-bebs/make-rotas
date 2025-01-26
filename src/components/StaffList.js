@@ -1,17 +1,20 @@
 // This component manages the staff list display and interactions
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useDebug } from './Debug/DebugContext';
+import { useStaffNumber } from '../context/StaffContext';
 
 function StaffList() {
   const { updateDebugVariables } = useDebug();
+  const { staffNumber } = useStaffNumber();
   const tableRef = useRef(null);
   
-  // Track table dimensions, button clicks, and rows
+  // Track table dimensions, button clicks, and frozen rows
   const [dimensions, setDimensions] = useState({
     rowCount: 0,
     columnCount: 0
   });
   const [addButtonClicks, setAddButtonClicks] = useState(0);
+  const [frozenRowCount, setFrozenRowCount] = useState(1); // Track frozen rows
   const [rows, setRows] = useState([
     Array(5).fill(''), // First row
     Array(5).fill('')  // Button row
@@ -65,10 +68,20 @@ function StaffList() {
           value: addButtonClicks,
           lastUpdated: new Date().toLocaleTimeString(),
           type: "number"
+        },
+        staffNumber: {
+          value: staffNumber,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
+        },
+        frozenRowCount: {
+          value: frozenRowCount,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
         }
       }
     });
-  }, [dimensions, addButtonClicks, updateDebugVariables]);
+  }, [dimensions, addButtonClicks, staffNumber, frozenRowCount, updateDebugVariables]);
 
   // Update debug whenever dimensions or click count changes
   useEffect(() => {
@@ -76,22 +89,27 @@ function StaffList() {
   }, [updateDebug]);
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table ref={tableRef} className="min-w-full border-collapse">
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="border p-2">
-                  {rowIndex === rows.length - 1 && cellIndex === 0 && (
-                    <button onClick={handleAddClick}>Add</button>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="w-full h-[calc(100vh-theme(spacing.32))] flex flex-col">
+      <div className="flex-1 overflow-auto">
+        <table ref={tableRef} className="min-w-full border-collapse">
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td 
+                    key={cellIndex} 
+                    className={`border p-2 ${rowIndex < frozenRowCount ? 'sticky top-0 bg-white z-10' : ''}`}
+                  >
+                    {rowIndex === rows.length - 1 && cellIndex === row.length - 1 && (
+                      <button onClick={handleAddClick}>Add</button>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

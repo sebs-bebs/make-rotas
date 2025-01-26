@@ -400,6 +400,40 @@ Violated rule #6 from .windsurfrules: "Do not populate tables with content unles
 - Maintaining clean separation between structure and content
 - Better adherence to minimalist component creation approach
 
+## Premature Table Header Addition
+**Date:** 2025-01-26
+**Component:** StaffList.js
+**Issue Type:** Rule Violation
+
+### Issue Description
+Added a `<thead>` section with empty header cells without being explicitly asked to populate table content.
+
+### Technical Details
+```javascript
+// Added without request:
+<thead className="bg-white">
+  <tr>
+    <th className="border p-2 sticky top-0 bg-white z-10"></th>
+    ...
+  </tr>
+</thead>
+```
+
+### Impact
+- Violates rule #6: "Do not populate tables with content unless explicitly asked"
+- Creates assumptions about table structure
+- Adds unnecessary complexity
+
+### Resolution Steps
+1. Remove the `<thead>` section
+2. Move sticky header functionality to first row of tbody
+3. Wait for explicit request to add headers
+
+### Prevention
+- Strictly follow rule about table content population
+- Only add structural elements when requested
+- Focus on functionality over content
+
 ## Incorrect Row Count Implementation
 **Date:** 2025-01-26
 **Component:** StaffList.js
@@ -541,3 +575,54 @@ const columnCount = tableRef.current?.querySelector('tr')?.children.length || 0;
 - Static values don't constitute tracking
 - Variable names should reflect their true purpose
 - Debug information should be accurate and dynamic
+
+## StaffContext Implementation Issues
+**Date:** 2025-01-26
+**Component:** StaffContext
+**Issue Type:** Implementation Errors
+
+### Issue 1: Duplicate Context Directory
+- Created a new `contexts` directory when `context` already existed
+- Violates project structure consistency
+- Creates confusion about where context files should be placed
+- Demonstrates lack of awareness of existing project organization
+
+### Issue 2: Incorrect State Management Logic
+- Unnecessarily coupled `staffNumber` updates with row additions
+- Assumed relationship between rows and staff number without requirement
+- Added complexity without clear purpose
+- Mixed unrelated concerns in component logic
+
+### Root Cause
+1. Directory Structure:
+   - Failed to check existing project structure
+   - Did not follow established patterns
+   - Created redundant directory
+
+2. State Management:
+   - Over-engineered solution
+   - Made assumptions about business logic
+   - Created unnecessary dependencies
+
+### Impact
+- Inconsistent project structure
+- Confusing context organization
+- Unnecessary coupling of components
+- Added complexity without value
+
+### Prevention
+1. Project Structure:
+   - Always check existing directories
+   - Follow established patterns
+   - Use existing organization schemes
+
+2. State Management:
+   - Keep state updates independent
+   - Only add relationships when explicitly required
+   - Avoid assumptions about business logic
+
+### Lessons Learned
+- Verify project structure before adding directories
+- Keep state updates independent unless explicitly related
+- Don't make assumptions about business logic
+- Simpler implementations are often better
