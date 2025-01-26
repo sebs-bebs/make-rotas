@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useDebug } from '../context/DebugContext';
+import { useDebug } from './Debug';
 
 const Navbar = () => {
   const { toggleDebug } = useDebug();

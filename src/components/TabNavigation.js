@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useDebug } from '../context/DebugContext';
+import { useDebug } from './Debug';
 
 function TabNavigation() {
     const [activeTab, setActiveTab] = React.useState("Tab 1");
@@ -8,10 +8,12 @@ function TabNavigation() {
     // Memoize the debug update to prevent unnecessary updates
     const updateDebug = useCallback(() => {
       updateDebugVariables({
-        activeTab: {
-          value: activeTab,
-          lastUpdated: new Date().toLocaleTimeString(),
-          type: "string"
+        TabNavigation: {
+          activeTab: {
+            value: activeTab,
+            lastUpdated: new Date().toLocaleTimeString(),
+            type: "string"
+          }
         }
       });
     }, [activeTab, updateDebugVariables]);

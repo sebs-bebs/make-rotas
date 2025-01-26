@@ -11,8 +11,11 @@ export const DebugProvider = ({ children }) => {
   // Optimized update function that only updates when values actually change
   const updateDebugVariables = useCallback((newVariables) => {
     setDebugVariables(prev => {
-      const hasChanges = Object.entries(newVariables).some(([key, value]) => {
-        return prev[key]?.value !== value.value;
+      const hasChanges = Object.entries(newVariables).some(([componentName, componentVars]) => {
+        return Object.entries(componentVars).some(([varName, value]) => {
+          const prevValue = prev[componentName]?.[varName]?.value;
+          return prevValue !== value.value;
+        });
       });
 
       if (!hasChanges) {
@@ -21,7 +24,13 @@ export const DebugProvider = ({ children }) => {
 
       return {
         ...prev,
-        ...newVariables
+        ...Object.entries(newVariables).reduce((acc, [componentName, componentVars]) => {
+          acc[componentName] = {
+            ...prev[componentName],
+            ...componentVars
+          };
+          return acc;
+        }, {})
       };
     });
   }, []);

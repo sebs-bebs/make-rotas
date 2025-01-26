@@ -3,8 +3,7 @@ import './App.css';
 import Navbar from './components/Navbar';
 import TabNavigation from './components/TabNavigation';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { DebugProvider } from './context/DebugContext';
-import DebugDisplay from './components/DebugDisplay';
+import { DebugProvider, DebugDisplay } from './components/Debug';
 
 function App() {
   return (
