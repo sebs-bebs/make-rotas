@@ -2,6 +2,7 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useDebug } from './Debug/DebugContext';
 import { useStaffNumber } from '../context/StaffContext';
+import AddButton from './AddButton';
 
 function StaffList() {
   const { updateDebugVariables } = useDebug();
@@ -14,35 +15,45 @@ function StaffList() {
     columnCount: 0
   });
   const [addButtonClicks, setAddButtonClicks] = useState(0);
+  const [removeButtonClicks, setRemoveButtonClicks] = useState(0); // Track remove button clicks
   const [frozenRowCount, setFrozenRowCount] = useState(1); // Track frozen rows
+  const [addButtonCount, setAddButtonCount] = useState(0); // Track actual number of Add buttons
   const [rows, setRows] = useState([
-    Array(5).fill(''), // First row
-    Array(5).fill('')  // Button row
+    Array(5).fill('') // Single data row
   ]);
 
-  // Calculate current dimensions
+  const headerLabels = ['STAFF', 'ROLE', 'COMMENTS', 'AVAILABILITY', ''];
+
+  // Calculate current dimensions and button count
   const updateDimensions = useCallback(() => {
     if (tableRef.current) {
       const rows = tableRef.current.getElementsByTagName('tr');
       const rowCount = rows.length;
       const columnCount = rows[0]?.cells.length || 0;
+      const buttons = tableRef.current.getElementsByTagName('button');
+      const buttonCount = buttons.length;
       
       setDimensions({
         rowCount,
         columnCount
       });
+      setAddButtonCount(buttonCount);
     }
   }, []);
 
   // Handle Add button click
   const handleAddClick = useCallback(() => {
     setAddButtonClicks(prev => prev + 1);
-    // Insert new row before the button row
     setRows(prev => [
-      ...prev.slice(0, -1), // All rows except button row
-      Array(5).fill(''),    // New row
-      prev[prev.length - 1] // Button row
+      ...prev,
+      Array(5).fill('') // Add new row
     ]);
+  }, []);
+
+  // Handle Remove button click
+  const handleRemoveClick = useCallback((rowIndex) => {
+    setRemoveButtonClicks(prev => prev + 1); // Increment remove clicks
+    setRows(prev => prev.filter((_, index) => index !== rowIndex));
   }, []);
 
   // Update dimensions after render and when table changes
@@ -69,6 +80,11 @@ function StaffList() {
           lastUpdated: new Date().toLocaleTimeString(),
           type: "number"
         },
+        removeButtonClicks: {
+          value: removeButtonClicks,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
+        },
         staffNumber: {
           value: staffNumber,
           lastUpdated: new Date().toLocaleTimeString(),
@@ -78,10 +94,15 @@ function StaffList() {
           value: frozenRowCount,
           lastUpdated: new Date().toLocaleTimeString(),
           type: "number"
+        },
+        addButtonCount: {
+          value: addButtonCount,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
         }
       }
     });
-  }, [dimensions, addButtonClicks, staffNumber, frozenRowCount, updateDebugVariables]);
+  }, [dimensions, addButtonClicks, removeButtonClicks, staffNumber, frozenRowCount, addButtonCount, updateDebugVariables]);
 
   // Update debug whenever dimensions or click count changes
   useEffect(() => {
@@ -92,16 +113,31 @@ function StaffList() {
     <div className="w-full h-[calc(100vh-theme(spacing.32))] flex flex-col">
       <div className="flex-1 overflow-auto">
         <table ref={tableRef} className="min-w-full border-collapse">
+          <thead>
+            <tr>
+              {headerLabels.map((label, index) => (
+                <th 
+                  key={index}
+                  className="border p-2 sticky top-0 bg-white z-10 font-semibold text-left"
+                >
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={rowIndex}>
                 {row.map((cell, cellIndex) => (
                   <td 
                     key={cellIndex} 
-                    className={`border p-2 ${rowIndex < frozenRowCount ? 'sticky top-0 bg-white z-10' : ''}`}
+                    className="border p-2"
                   >
-                    {rowIndex === rows.length - 1 && cellIndex === row.length - 1 && (
-                      <button onClick={handleAddClick}>Add</button>
+                    {cellIndex === row.length - 1 && (
+                      <AddButton 
+                        onAdd={handleAddClick}
+                        onRemove={() => handleRemoveClick(rowIndex)}
+                      />
                     )}
                   </td>
                 ))}

@@ -626,3 +626,97 @@ const columnCount = tableRef.current?.querySelector('tr')?.children.length || 0;
 - Keep state updates independent unless explicitly related
 - Don't make assumptions about business logic
 - Simpler implementations are often better
+
+## Unsolicited Component Styling
+**Date:** 2025-01-26
+**Component:** AddButton.js
+**Issue Type:** Rule Violation
+
+### Issue Description
+Added unsolicited Tailwind CSS styling to the AddButton component when the requirement was only to extract the button into a reusable component.
+
+### Technical Details
+```javascript
+// Incorrectly added:
+className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+```
+
+### Impact
+- Added unnecessary styling without explicit request
+- Violated principle of minimal implementation
+- Created potential maintenance overhead
+
+### Resolution Steps
+1. Removed all styling classes
+2. Kept only essential functionality (onClick handler)
+3. Simplified component to basic button element
+
+### Prevention
+- Only add styling when explicitly requested
+- Follow minimal implementation principle
+- Wait for specific styling requirements
+
+## AddButton Remove Action Bug
+**Date:** 2025-01-26
+**Component:** AddButton.js, StaffList.js
+**Issue Type:** Functionality Bug
+
+### Issue Description
+The AddButton's remove functionality was incorrectly implemented, causing it to add new rows instead of removing the current row when clicked in "Remove" state.
+
+### Technical Details
+```javascript
+// Original incorrect implementation
+function AddButton({ onClick }) {
+  return (
+    <button onClick={onClick}>
+      Add
+    </button>
+  );
+}
+
+// In StaffList.js, same handler was used for both add and remove
+<AddButton onClick={handleAddClick} />
+```
+
+### Impact
+- Remove action triggered the add handler
+- Added unnecessary rows instead of removing them
+- Confused user experience
+- Incorrect row management
+
+### Resolution Steps
+1. Separated add and remove handlers in AddButton:
+```javascript
+function AddButton({ onAdd, onRemove }) {
+  const [isAdd, setIsAdd] = useState(true);
+  
+  const handleClick = () => {
+    if (isAdd) {
+      onAdd();
+      setIsAdd(false);
+    } else {
+      onRemove();
+    }
+  };
+}
+```
+
+2. Added separate handlers in StaffList:
+```javascript
+const handleRemoveClick = useCallback((rowIndex) => {
+  setRows(prev => prev.filter((_, index) => index !== rowIndex));
+}, []);
+
+<AddButton 
+  onAdd={handleAddClick}
+  onRemove={() => handleRemoveClick(rowIndex)}
+/>
+```
+
+### Prevention
+- Keep actions separate and explicit
+- Use specific handlers for different actions
+- Maintain clear state management
+- Test both states of toggle buttons
+- Ensure proper row index tracking
