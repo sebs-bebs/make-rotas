@@ -85,33 +85,73 @@ const recoverState = () => {
 };
 ```
 
-## 4. Component Functions
+## 4. Table Structure & Layout
 
-### Event Handlers
-```javascript
-const handleShiftClick = (staffId: string, day: string) => {
-  // Open shift editor
-};
+### Container Architecture
+The table uses a nested container structure for enhanced functionality:
 
-const handleShiftSave = (shift: Shift) => {
-  // Save shift and update local storage
-};
-
-const handleShiftDelete = (shiftId: string) => {
-  // Delete shift and update local storage
-};
+```jsx
+<div className="mt-4 relative">
+  {/* Outer container */}
+  <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+    {/* Inner container */}
+    <table>
+      {/* Table content */}
+    </table>
+  </div>
+</div>
 ```
 
-### Utility Functions
-```javascript
-const formatTime = (time: string): string => {
-  // Format time for display
-};
+#### Container Roles
+1. **Outer Container**
+   - Spacing and positioning
+   - Sticky element context
+   - Document flow maintenance
 
-const validateShift = (shift: Shift): boolean => {
-  // Validate shift data
-};
+2. **Inner Container**
+   - Horizontal scrolling
+   - Visual styling
+   - Overflow management
+
+### Week Display System
+
+#### WeekDays Data Structure
+```typescript
+interface DayInfo {
+  date: string;        // YYYY-MM-DD format
+  week: number;        // Week offset
+  isCurrentWeek: boolean;
+  dayName: string;     // Full day name
+}
+
+interface WeekDays {
+  monday: DayInfo;
+  tuesday: DayInfo;
+  wednesday: DayInfo;
+  thursday: DayInfo;
+  friday: DayInfo;
+  saturday: DayInfo;
+  sunday: DayInfo;
+}
 ```
+
+#### Header Cell Format
+```jsx
+// Each header cell displays
+`${dayName}\n${date}`  // e.g., "Monday\n2025-01-26"
+```
+
+#### State Management
+- Uses `useMemo` for efficient updates
+- Automatically updates with week navigation
+- Maintains debug information
+- Preserves current week status
+
+### Responsive Design
+- Horizontal scrolling for wide tables
+- Sticky headers and first column
+- Consistent styling across viewports
+- Proper overflow handling
 
 ## 5. Date Management
 

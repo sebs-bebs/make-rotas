@@ -369,3 +369,175 @@ A simple request to "create a table with seven columns and two rows" was over-im
 3. Keep initial implementations simple
 4. Ask questions instead of making assumptions
 5. Document clearly without assuming future use
+
+## Table Content Population Rule Violation
+**Date:** 2025-01-26
+**Component:** StaffList.js
+**Issue Type:** Rule Violation
+
+### Issue Description
+Violated rule #6 from .windsurfrules: "Do not populate tables with content unless explicitly asked" by adding column headers without explicit request.
+
+### Impact
+- Added unnecessary column headers
+- Created assumptions about table structure
+- Potential misalignment with future requirements
+
+### Resolution
+1. Removed premature content
+2. Reverted to basic table structure
+3. Waiting for explicit content requirements
+
+### Prevention
+1. Always review .windsurfrules before making changes
+2. Create minimal structures without content
+3. Wait for explicit content requests
+4. Document structure decisions separately from content decisions
+
+### Lessons Learned
+- Importance of following established rules
+- Avoiding assumptions about content structure
+- Maintaining clean separation between structure and content
+- Better adherence to minimalist component creation approach
+
+## Incorrect Row Count Implementation
+**Date:** 2025-01-26
+**Component:** StaffList.js
+**Issue Type:** Implementation Error
+
+### Issue Description
+Created a table with 3 rows (1 header + 2 body) when explicitly asked for 2 rows total.
+
+### Technical Details
+```jsx
+// Implemented Structure (3 rows total):
+<thead>
+  <tr>...</tr>      // Row 1 (header)
+</thead>
+<tbody>
+  <tr>...</tr>      // Row 2
+  <tr>...</tr>      // Row 3
+</tbody>
+```
+
+### Impact
+- Misinterpreted requirement for total row count
+- Added unnecessary complexity to table structure
+- Created confusion between header and body row counting
+
+### Root Cause
+- Assumed header row wasn't part of total row count
+- Failed to clarify if header row should be included in count
+- Made assumptions about table structure requirements
+
+### Resolution
+1. Remove one body row to maintain total of 2 rows
+2. Keep semantic table structure (thead/tbody)
+3. Document row counting convention for future reference
+
+### Prevention
+1. Clarify row counting conventions upfront
+2. Consider header rows in total count
+3. Double-check numerical requirements
+4. Ask for clarification when structure is ambiguous
+
+### Lessons Learned
+- Be explicit about counting conventions
+- Don't make assumptions about structure requirements
+- Consider all rows when counting, including headers
+- Importance of precise requirement interpretation
+
+## Premature Styling Implementation
+**Date:** 2025-01-26
+**Component:** StaffList.js
+**Issue Type:** Implementation Error
+
+### Issue Description
+Added unsolicited styling to a button when the requirement was simply "a button to appear everytime on the first cell of the last row".
+
+### Technical Details
+```jsx
+// Implemented (with unnecessary styling):
+<button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+  Add
+</button>
+
+// Should have been:
+<button>Add</button>
+```
+
+### Impact
+- Added unnecessary complexity
+- Made assumptions about design requirements
+- Violated minimal implementation principle
+
+### Root Cause
+- Over-eagerness to enhance UI
+- Assumption about styling needs
+- Not following minimal implementation approach
+
+### Resolution
+1. Remove all unsolicited styling
+2. Implement basic button only
+3. Wait for explicit styling requirements
+
+### Prevention
+1. Stick to exact requirements
+2. Avoid premature styling
+3. Ask for styling requirements explicitly
+4. Follow minimal implementation principle
+
+### Lessons Learned
+- Importance of precise requirement interpretation
+- Don't assume styling needs
+- Keep initial implementations minimal
+- Wait for explicit styling requests
+
+## Static Table Dimension Tracking Implementation
+**Date:** 2025-01-26
+**Component:** StaffList.js
+**Issue Type:** Implementation Error
+
+### Issue Description
+Implemented static values for row and column counting instead of dynamic tracking that reflects actual table dimensions.
+
+### Technical Details
+```javascript
+// Current Implementation (incorrect):
+const rowCount = 2;
+const columnCount = 5;
+
+// Should have been:
+const rowCount = tableRef.current?.getElementsByTagName('tr').length || 0;
+const columnCount = tableRef.current?.querySelector('tr')?.children.length || 0;
+```
+
+### Impact
+- Values don't reflect actual table structure
+- Debug display shows hardcoded numbers
+- No real-time tracking of table changes
+- Misleading debugging information
+
+### Root Cause
+- Oversimplified implementation
+- Misunderstanding of "tracking" requirement
+- Focus on display rather than functionality
+- Not implementing proper DOM querying
+
+### Resolution Steps
+1. Add table ref using useRef
+2. Implement dynamic counting logic
+3. Update counts when table structure changes
+4. Add proper error handling
+
+### Prevention
+1. Verify implementation matches requirements
+2. Test with dynamic content
+3. Implement real tracking mechanisms
+4. Review variable naming for accuracy
+
+### Lessons Learned
+- "Tracking" implies dynamic monitoring
+- Static values don't constitute tracking
+- Variable names should reflect their true purpose
+- Debug information should be accurate and dynamic

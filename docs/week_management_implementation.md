@@ -121,6 +121,63 @@ return (
 );
 ```
 
+## Phase 2: Enhanced Week Display
+
+### WeekDays Implementation
+The week display has been enhanced with a more detailed data structure using `useMemo`:
+
+```typescript
+type DayInfo = {
+  date: string;        // Format: "YYYY-MM-DD"
+  week: number;        // Week offset from current week
+  isCurrentWeek: boolean;
+  dayName: string;     // Full day name (e.g., "Monday")
+};
+
+type WeekDays = {
+  monday: DayInfo;
+  tuesday: DayInfo;
+  wednesday: DayInfo;
+  thursday: DayInfo;
+  friday: DayInfo;
+  saturday: DayInfo;
+  sunday: DayInfo;
+};
+```
+
+### Table Structure
+The table implementation uses a nested container structure for enhanced functionality:
+
+```jsx
+<div className="mt-4 relative">
+  {/* Outer container: Controls positioning and spacing */}
+  <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+    {/* Inner container: Handles scrolling and visual styling */}
+    <table>
+      {/* Table content */}
+    </table>
+  </div>
+</div>
+```
+
+#### Container Purposes
+1. **Outer Container (`mt-4 relative`)**
+   - Provides margin spacing from other elements
+   - Creates positioning context for sticky elements
+   - Maintains table position in document flow
+
+2. **Inner Container (`overflow-x-auto border rounded-lg shadow-sm bg-white`)**
+   - Enables horizontal scrolling
+   - Applies visual styling (border, shadow)
+   - Maintains background color
+   - Contains overflow content
+
+This structure is crucial for:
+- Supporting sticky headers and columns
+- Enabling responsive horizontal scrolling
+- Maintaining visual consistency
+- Proper positioning of all table elements
+
 ## Implementation Steps
 
 ### 1. Initial Setup

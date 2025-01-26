@@ -109,48 +109,6 @@ import TabNavigation from './components/TabNavigation';
 - Visual feedback for active states
 - Consistent spacing and sizing for touch targets
 
-## Date Management System
-
-### Overview
-The application uses a centralized date management system through `DateContext` to ensure consistent date handling across all components.
-
-### Implementation Details
-
-#### Context Structure
-```jsx
-// DateContext.js
-- Uses React.createContext for global date state
-- Implements automatic date synchronization
-- Provides current date in YYYY-MM-DD format
-```
-
-#### Key Features
-1. **Automatic Date Synchronization**
-   - Updates date automatically at midnight
-   - Checks every minute for date changes
-   - Ensures application always shows correct date
-
-2. **Global Date Access**
-   - Provides current date to all components
-   - Consistent date format across application
-   - Prevents date-related synchronization issues
-
-3. **Usage in Components**
-```javascript
-import { useDate } from '../context/DateContext';
-
-function MyComponent() {
-    const { currentDate } = useDate();
-    // Use currentDate in component logic
-}
-```
-
-### Integration Points
-The DateContext is used across several key features:
-- Tab Navigation: For date-based navigation
-- Shift Management: For current day highlighting
-- Week View: For determining current week
-
 ## ShiftTable Component
 **Date:** 2025-01-26
 **Author:** System
@@ -184,6 +142,60 @@ The component currently tracks:
 - Follows the existing component patterns and debug functionality
 
 Note: This is an initial implementation. The component structure will be expanded based on future requirements.
+
+## ShiftTable Week Display
+
+### Overview
+The ShiftTable component now features an enhanced week display system that shows detailed day information in the table header.
+
+### Implementation Details
+
+#### WeekDays Management
+```jsx
+// Uses useMemo for efficient day information management
+- Tracks each day's date and name
+- Updates automatically with week navigation
+- Maintains current week status
+```
+
+#### Key Features
+1. **Dynamic Header Display**
+   - Shows day names and dates in table header
+   - Updates automatically when navigating weeks
+   - Maintains proper formatting and alignment
+
+2. **Responsive Table Structure**
+   - Nested container design for enhanced functionality
+   - Supports horizontal scrolling
+   - Maintains sticky headers and columns
+   - Provides consistent visual styling
+
+3. **State Management**
+   - Uses React's useMemo for efficient updates
+   - Integrates with week navigation system
+   - Maintains debug information
+   - Updates automatically with week changes
+
+### Visual Components
+```jsx
+// Table header cell structure
+`${dayName}\n${date}`  // e.g., "Monday\n2025-01-26"
+
+// Container structure
+<div className="mt-4 relative">
+  <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+    <table>
+      {/* Content */}
+    </table>
+  </div>
+</div>
+```
+
+### Usage
+The week display automatically updates when:
+- Navigating to next/previous week
+- Resetting to current week
+- Initially loading the component
 
 ## Debug System
 **Added: 2025-01-25**
@@ -748,6 +760,52 @@ const YourComponent = () => {
 ### Related Documentation
 - [Debug System README](../src/components/Debug/README.md)
 - [Example Components](../src/components/Debug/examples/)
+
+## StaffList Table Dimension Tracking
+**Date:** 2025-01-26
+**Component:** StaffList.js
+
+### Feature Description
+Added table dimension tracking to monitor the number of rows and columns in the StaffList table.
+
+### Implementation Details
+1. **Variables Added:**
+   - `rowCount`: Tracks total number of rows
+   - `columnCount`: Tracks total number of columns
+
+2. **Debug Integration:**
+   - Variables are displayed in DebugDisplay
+   - Updates in real-time
+   - Shows both values and their types
+   - Includes timestamp of last update
+
+3. **Technical Implementation:**
+   ```javascript
+   const rowCount = 2;
+   const columnCount = 4;
+   ```
+
+### Debug Display Format
+```javascript
+StaffList: {
+  rowCount: {
+    value: 2,
+    lastUpdated: "timestamp",
+    type: "number"
+  },
+  columnCount: {
+    value: 4,
+    lastUpdated: "timestamp",
+    type: "number"
+  }
+}
+```
+
+### Future Considerations
+1. Make dimensions dynamic based on content
+2. Add validation for minimum/maximum dimensions
+3. Track changes in dimensions over time
+4. Add error handling for dimension changes
 
 ## Feature Implementation Log
 

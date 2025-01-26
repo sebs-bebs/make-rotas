@@ -4,6 +4,7 @@
 import React, { useCallback } from 'react';
 import { useDebug } from './Debug';
 import ShiftTable from './ShiftTable';
+import StaffList from './StaffList';
 
 function TabNavigation() {
     // Keep track of which tab is currently selected (starts with Tab 1)
@@ -57,8 +58,8 @@ function TabNavigation() {
         <div className="tab-content mt-4 flex flex-col">
           {/* Show ShiftTable when Tab 1 is selected */}
           {activeTab === "Tab 1" && <ShiftTable />}
-          {/* Show placeholder content when Tab 2 is selected */}
-          {activeTab === "Tab 2" && <div>Tab 2 content</div>}
+          {/* Show StaffList when Tab 2 is selected */}
+          {activeTab === "Tab 2" && <StaffList />}
         </div>
       </div>
     );
