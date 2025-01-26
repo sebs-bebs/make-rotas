@@ -2,11 +2,13 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useDebug } from './Debug/DebugContext';
 import { useStaffNumber } from '../context/StaffContext';
+import { useStaffDetail } from '../context/StaffDetailContext';
 import AddButton from './AddButton';
 
 function StaffList() {
   const { updateDebugVariables } = useDebug();
   const { staffNumber } = useStaffNumber();
+  const { addStaffMember } = useStaffDetail();
   const tableRef = useRef(null);
   
   // Track table dimensions, button clicks, and frozen rows
@@ -18,11 +20,19 @@ function StaffList() {
   const [removeButtonClicks, setRemoveButtonClicks] = useState(0); // Track remove button clicks
   const [frozenRowCount, setFrozenRowCount] = useState(1); // Track frozen rows
   const [addButtonCount, setAddButtonCount] = useState(0); // Track actual number of Add buttons
+  const [removeButtonCount, setRemoveButtonCount] = useState(0); // Track actual number of Remove buttons
   const [rows, setRows] = useState([
     Array(5).fill('') // Single data row
   ]);
 
   const headerLabels = ['STAFF', 'ROLE', 'COMMENTS', 'AVAILABILITY', ''];
+
+  // Generate unique staffID
+  const generateStaffID = useCallback(() => {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 7);
+    return `staff_${timestamp}${random}`;
+  }, []);
 
   // Calculate current dimensions and button count
   const updateDimensions = useCallback(() => {
@@ -30,25 +40,49 @@ function StaffList() {
       const rows = tableRef.current.getElementsByTagName('tr');
       const rowCount = rows.length;
       const columnCount = rows[0]?.cells.length || 0;
-      const buttons = tableRef.current.getElementsByTagName('button');
-      const buttonCount = buttons.length;
+      const buttons = Array.from(tableRef.current.getElementsByTagName('button'));
+      
+      // Count Add and Remove buttons
+      let addCount = 0;
+      let removeCount = 0;
+      buttons.forEach(button => {
+        if (button.textContent.trim() === 'Add') {
+          addCount++;
+        } else if (button.textContent.trim() === 'Remove') {
+          removeCount++;
+        }
+      });
       
       setDimensions({
         rowCount,
         columnCount
       });
-      setAddButtonCount(buttonCount);
+      setAddButtonCount(addCount);
+      setRemoveButtonCount(removeCount);
     }
   }, []);
 
   // Handle Add button click
   const handleAddClick = useCallback(() => {
     setAddButtonClicks(prev => prev + 1);
+    
+    // Create new staff member with unique ID
+    const newStaffID = generateStaffID();
+    addStaffMember({
+      staffID: newStaffID,
+      firstName: '',
+      lastName: '',
+      role: '',
+      comments: '',
+      availability: []
+    });
+
+    // Add new row to table
     setRows(prev => [
       ...prev,
       Array(5).fill('') // Add new row
     ]);
-  }, []);
+  }, [addStaffMember, generateStaffID]);
 
   // Handle Remove button click
   const handleRemoveClick = useCallback((rowIndex) => {
@@ -99,10 +133,15 @@ function StaffList() {
           value: addButtonCount,
           lastUpdated: new Date().toLocaleTimeString(),
           type: "number"
+        },
+        removeButtonCount: {
+          value: removeButtonCount,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
         }
       }
     });
-  }, [dimensions, addButtonClicks, removeButtonClicks, staffNumber, frozenRowCount, addButtonCount, updateDebugVariables]);
+  }, [dimensions, addButtonClicks, removeButtonClicks, staffNumber, frozenRowCount, addButtonCount, removeButtonCount, updateDebugVariables]);
 
   // Update debug whenever dimensions or click count changes
   useEffect(() => {

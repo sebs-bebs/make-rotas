@@ -1,11 +1,31 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useDebug } from './DebugContext';
+import { useStaffDetail } from '../../context/StaffDetailContext';
 import ComponentSection from './ComponentSection';
 
 const DebugDisplay = () => {
-  const { isDebugVisible, debugVariables, toggleDebug } = useDebug();
+  const { isDebugVisible, debugVariables, toggleDebug, updateDebugVariables } = useDebug();
+  const { staffMembers } = useStaffDetail();
   const [searchTerm, setSearchTerm] = useState('');
   const [openSections, setOpenSections] = useState(new Set());
+
+  // Update staff details in debug display
+  useEffect(() => {
+    updateDebugVariables({
+      StaffDetail: {
+        staffMembers: {
+          value: staffMembers.map(staff => ({
+            staffID: staff.staffID,
+            fullName: staff.fullName,
+            role: staff.role,
+            inList: staff.inList
+          })),
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "array"
+        }
+      }
+    });
+  }, [staffMembers, updateDebugVariables]);
 
   const filteredComponents = useMemo(() => {
     return Object.entries(debugVariables).filter(([componentName, variables]) => {

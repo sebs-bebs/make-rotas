@@ -9,6 +9,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { DebugProvider, DebugDisplay } from './components/Debug';
 import { DateProvider } from './context/DateContext';
 import { StaffProvider } from './context/StaffContext';
+import { StaffDetailProvider } from './context/StaffDetailContext';
 
 // This is our main App component - it's like the container that holds everything else
 function App() {
@@ -19,18 +20,20 @@ function App() {
       <DebugProvider>
         <DateProvider>
           <StaffProvider>
-            {/* This div creates a full-height white background for our app */}
-            <div className="min-h-screen bg-white">
-              {/* Navigation bar at the top of the page */}
-              <Navbar />
-              {/* Main content area with some spacing around it */}
-              <main className="container mx-auto px-4 py-8">
-                {/* Tab system for organizing different sections */}
-                <TabNavigation />
-              </main>
-              {/* Shows helpful information about what's happening in the app */}
-              <DebugDisplay />
-            </div>
+            <StaffDetailProvider>
+              {/* This div creates a full-height white background for our app */}
+              <div className="min-h-screen bg-white">
+                {/* Navigation bar at the top of the page */}
+                <Navbar />
+                {/* Main content area with some spacing around it */}
+                <main className="container mx-auto px-4 py-8">
+                  {/* Tab system for organizing different sections */}
+                  <TabNavigation />
+                </main>
+                {/* Shows helpful information about what's happening in the app */}
+                <DebugDisplay />
+              </div>
+            </StaffDetailProvider>
           </StaffProvider>
         </DateProvider>
       </DebugProvider>

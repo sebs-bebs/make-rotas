@@ -150,6 +150,81 @@ const getFrozenColumnCount = useCallback(() => {
 }, [rows, isColumnFrozen]);
 ```
 
+## StaffDetailContext (`src/context/StaffDetailContext.js`)
+
+### StaffMember Object Structure
+```typescript
+interface StaffMember {
+  firstName: string;     // First name of staff member
+  lastName: string;      // Last name of staff member
+  fullName: string;      // Auto-computed: firstName + lastName
+  role: string;         // Staff member's role
+  comments: string;     // Additional notes
+  staffID: string;      // Unique identifier
+  availability: string[]; // Available days
+  inList: boolean;      // Active status
+}
+```
+
+### Context Functions
+
+#### useStaffDetail Hook
+```javascript
+const { 
+  staffMembers,          // All staff members array
+  addStaffMember,        // Add new staff member
+  updateStaffMember,     // Update existing staff member
+  removeStaffMember,     // Soft delete staff member
+  getStaffMember,        // Get single staff member
+  getActiveStaffMembers  // Get all active staff
+} = useStaffDetail();
+```
+
+#### Add Staff Member
+```javascript
+addStaffMember({
+  firstName: "John",
+  lastName: "Doe",
+  role: "Chef",
+  comments: "Senior chef",
+  staffID: "chef_001",
+  availability: ["Monday", "Tuesday"]
+});
+// Note: fullName and inList are auto-set
+```
+
+#### Update Staff Member
+```javascript
+updateStaffMember("chef_001", {
+  role: "Head Chef",
+  availability: ["Monday", "Wednesday"]
+});
+// Note: fullName updates automatically if name changes
+```
+
+#### Remove Staff Member
+```javascript
+removeStaffMember("chef_001");
+// Sets inList to false, keeping record in system
+```
+
+#### Get Staff Members
+```javascript
+// Get single staff member
+const chef = getStaffMember("chef_001");
+
+// Get all active staff members
+const activeStaff = getActiveStaffMembers();
+```
+
+### Implementation Notes
+- Uses React Context for global state management
+- Maintains soft delete functionality
+- Automatically computes and syncs fullName
+- Preserves data integrity with TypeScript-like validation
+- Provides comprehensive CRUD operations
+- Available throughout the application via useStaffDetail hook
+
 ## DateContext (`src/context/DateContext.js`)
 
 ### Helper Functions
