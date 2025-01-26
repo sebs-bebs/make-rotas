@@ -99,6 +99,93 @@ const ComponentSection = ({ componentName, variables, isOpen, onToggle }) => {
 - `src/components/Debug/DebugDisplay.js`
 - `src/components/TabNavigation.js`
 
+## Debug Display - Missing Day Variables
+**Date:** 2025-01-26
+**Component:** ShiftTable.js, Debug/DebugDisplay.js
+
+### Issue Description
+When implementing day-of-week variables in ShiftTable, two critical issues were introduced:
+
+1. **Incomplete Debug Display Integration**
+   - Added day variables (Monday to Sunday) to ShiftTable component
+   - Failed to properly integrate these variables into DebugDisplay.js
+   - Variables were not visible in the debug interface
+
+2. **Accidental TabNavigation Removal**
+   - During refactoring of debug variables
+   - TabNavigation variables were unintentionally removed from Debug Display
+   - Lost important navigation state tracking
+
+### Root Cause
+- Attempted to add day variables directly to the debug context without proper nesting
+- Failed to maintain existing debug structure during refactoring
+- Did not follow the established pattern of grouping related variables under component names
+
+### Solution
+1. **Restore Day Variables**
+   ```javascript
+   updateDebugVariables({
+     ShiftTable: {
+       // ... existing variables
+       days: {
+         monday: { value: monday, type: "string" },
+         tuesday: { value: tuesday, type: "string" },
+         wednesday: { value: wednesday, type: "string" },
+         thursday: { value: thursday, type: "string" },
+         friday: { value: friday, type: "string" },
+         saturday: { value: saturday, type: "string" },
+         sunday: { value: sunday, type: "string" }
+       }
+     }
+   });
+   ```
+
+2. **Restore TabNavigation Variables**
+   - Reimplement TabNavigation section in debug variables
+   - Ensure all navigation state is properly tracked
+   - Maintain the existing debug structure
+
+### Prevention Steps
+1. Always maintain component-level grouping in debug variables
+2. Test debug display after any changes to ensure all variables are visible
+3. Document all debug variables and their structure
+4. Use a checklist when refactoring to prevent accidental removals
+
+## Debug Display - Incorrect Variable Ordering
+**Date:** 2025-01-26
+**Component:** Debug/DebugDisplay.js
+
+### Issue Description
+The debug display was showing variables in an incorrect order, causing confusion and making it harder to debug:
+
+1. **Incorrect Ordering**
+   - Variables were not ordered alphabetically
+   - Caused confusion when trying to locate specific variables
+
+2. **Missing Section Separation**
+   - Variables from different components were not separated
+   - Made it difficult to distinguish between component variables
+
+### Root Cause
+- Did not implement a consistent ordering mechanism for debug variables
+- Failed to separate variables by component
+- Did not consider the importance of clear organization in the debug display
+
+### Solution
+1. **Implement Alphabetical Ordering**
+   - Sort debug variables alphabetically by name
+   - Ensure consistent ordering across all components
+
+2. **Add Section Separation**
+   - Separate variables by component using clear headings
+   - Use visual separation to distinguish between component variables
+
+### Prevention Steps
+1. Implement a consistent ordering mechanism for debug variables
+2. Separate variables by component using clear headings
+3. Consider the importance of clear organization in the debug display
+4. Test the debug display to ensure variables are correctly ordered and separated
+
 ## Premature Implementation - Date Management System
 **Date:** 2025-01-26
 **Component:** Multiple (ShiftTable.js, useDate.js)

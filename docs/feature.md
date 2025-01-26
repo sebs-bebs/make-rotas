@@ -748,3 +748,122 @@ const YourComponent = () => {
 ### Related Documentation
 - [Debug System README](../src/components/Debug/README.md)
 - [Example Components](../src/components/Debug/examples/)
+
+## Feature Implementation Log
+
+## ShiftTable Component - Frozen Rows and Columns Debug Tracking (2025-01-26)
+
+### Issue: Incorrect Debug Variable Implementation
+A critical oversight was made in implementing debug tracking for frozen rows and columns in the ShiftTable component. The implementation used static variables (`numFrozenRows` and `numFrozenCols`) that don't actually reflect the table's state.
+
+**Problem:**
+```javascript
+// Incorrect Implementation
+const numFrozenRows = 1;
+const numFrozenCols = 1;
+
+// Debug variables don't reflect actual table state
+frozenRows: {
+  value: numFrozenRows,  // Static value, not derived from table state
+  type: "number"
+}
+```
+
+**Why This Is Wrong:**
+1. The variables are static and don't reflect the actual table state
+2. No verification of whether cells are actually frozen (have sticky positioning)
+3. Misleading debug information that could cause confusion during development
+
+### Correct Approach
+Debug variables should reflect the actual state of the component by:
+1. Scanning the table's DOM structure or tracking applied CSS classes
+2. Counting elements with sticky positioning
+3. Deriving values from the actual rendered state rather than assumptions
+
+**Example of Better Implementation:**
+```javascript
+const getFrozenRowCount = () => {
+  return rows.reduce((count, _, index) => {
+    return count + (isRowFrozen(index) ? 1 : 0);
+  }, 0);
+};
+
+const isRowFrozen = (rowIndex) => {
+  // Actually check if the row has sticky positioning
+  return rowIndex < numFrozenRows && hasStickyStyling(rowIndex);
+};
+```
+
+### Learning Points
+1. Debug variables should reflect actual component state, not assumptions
+2. Implement proper state tracking before adding debug variables
+3. Validate component properties rather than using static values
+4. Consider the needs of developers who will rely on these debug values
+
+## ShiftTable Component - Second Oversight in Frozen Element Detection (2025-01-26)
+
+### Issue: Inadequate CSS Property Verification
+After attempting to fix the static variable issue, a second critical oversight was made. The new implementation still doesn't actually verify the CSS properties that make elements frozen.
+
+**Current Implementation:**
+```javascript
+const isRowFrozen = (rowIndex) => {
+  return rowIndex === 0; // Still making assumptions!
+};
+
+const isColumnFrozen = (colIndex) => {
+  return colIndex === 0; // Still making assumptions!
+};
+```
+
+**Why This Is Still Wrong:**
+1. The functions only check index positions, not actual CSS properties
+2. Doesn't verify if elements have the necessary sticky positioning:
+   - `position: sticky`
+   - `top-0` for rows
+   - `left-0` for columns
+   - Appropriate z-index values
+3. Could report false positives if styling is broken or overridden
+
+### What Actually Makes an Element "Frozen":
+```css
+/* Required CSS Properties for Frozen Elements */
+.frozen-row {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: white; /* for visual separation */
+}
+
+.frozen-column {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: white;
+}
+```
+
+### Proper Implementation Should:
+1. Check computed styles of elements
+2. Verify all required CSS properties are present and have correct values
+3. Consider CSS specificity and inheritance
+4. Account for potential style overrides
+
+**Example of Proper Implementation:**
+```javascript
+const isElementFrozen = (element) => {
+  const computedStyle = window.getComputedStyle(element);
+  return {
+    isSticky: computedStyle.position === 'sticky',
+    hasCorrectOffset: computedStyle.top === '0px' || computedStyle.left === '0px',
+    hasBackground: computedStyle.backgroundColor !== 'transparent',
+    hasZIndex: parseInt(computedStyle.zIndex) > 0
+  };
+};
+```
+
+### Learning Points
+1. Debug functions should verify actual CSS properties
+2. Don't rely on class names or element positions alone
+3. Consider all properties that make an element "frozen"
+4. Test edge cases where styles might be overridden
