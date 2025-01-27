@@ -97,3 +97,30 @@ During the implementation of row and column tracking variables, the table struct
 1. Always use the `{{ ... }}` placeholder for unchanged code
 2. Keep existing code organization unless explicitly asked to change
 3. Document any intentional code moves or reorganization
+
+## [2025-01-27] Accidental Removal of ShiftTable Debug Variables
+
+### What Was Removed
+- ShiftTable component's debug variables were accidentally removed from the Debug View
+- This happened due to an overly restrictive whitelist in `ComponentSection.js`
+
+### Impact
+- Lost ability to track and debug ShiftTable component state
+- Reduced visibility into shift-related debugging information
+- Affected the development workflow for shift management features
+
+### How It Happened
+1. While trying to fix numbered sections in Debug View, made a poor analysis
+2. Added a restrictive whitelist: `['StaffDetail', 'TabNavigation', 'StaffList']`
+3. Forgot to include 'ShiftTable' in the whitelist
+4. This caused ShiftTable's debug information to be filtered out
+
+### Resolution Steps
+1. Add 'ShiftTable' back to the validComponents list
+2. Full corrected list should be: `['StaffDetail', 'TabNavigation', 'StaffList', 'ShiftTable']`
+3. Test to ensure ShiftTable debug information is visible again
+
+### Prevention Measures
+1. Always review all active components before restricting debug views
+2. Document all components that need debug visibility
+3. Test changes against all main components, not just the problematic ones

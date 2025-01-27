@@ -982,3 +982,50 @@ Staff members were not persisting after page refresh despite being saved to loca
   - Stored staff members
   - Staff count
   - Button states
+
+## [2025-01-27] Debug View Numbered Sections - Poor Analysis and Fix
+
+### Bug Description
+Unwanted numbered sections (1 to 11) appearing in the Debug View
+
+### Initial Poor Analysis
+1. **Misdiagnosis**: Initially thought the issue was coming from example components
+2. **Wrong Action**: Moved example files to a different directory
+3. **Failed Solution**: Tried to fix by adding a component whitelist without proper analysis
+
+### Impact of Poor Analysis
+1. Broke ShiftTable debugging functionality
+2. Made unnecessary file movements
+3. Added complexity without solving the root issue
+
+### Correct Analysis Needed
+1. Should have checked how debug variables are being rendered
+2. Should have analyzed the relationship between components
+3. Should have tested impact on all components before making changes
+
+### Proper Fix Required
+1. Need to understand why numbered sections appear
+2. Must preserve all essential debug information
+3. Should maintain visibility for all main components:
+   - ShiftTable (shift management)
+   - StaffList (staff information)
+   - StaffDetail (detailed staff data)
+   - TabNavigation (navigation state)
+
+### Code Explanation for Non-Coders
+The Debug View is like a special window that shows us what's happening inside our app. Think of it as a control panel with different sections:
+
+1. **What We See**: 
+   - Different sections with component names (like "ShiftTable", "StaffList")
+   - Each section shows important information about that part of the app
+   - Some sections have numbers (1 to 11) that we don't want
+
+2. **What We Changed**:
+   - Added a list of allowed sections (like a guest list for a party)
+   - But accidentally left out an important guest (ShiftTable)
+   - This made ShiftTable's information disappear from our control panel
+
+3. **What We Need to Fix**:
+   - Add ShiftTable back to our "allowed list"
+   - Keep all the important information visible
+   - Remove only the unwanted numbered sections

@@ -5,6 +5,7 @@ import { useStaffNumber } from '../context/StaffContext';
 import { useStaffDetail } from '../context/StaffDetailContext';
 import AddButton from './AddButton';
 import RemoveButton from './RemoveButton';
+import EditButton from './EditButton';
 import Availability from './Availability';
 import StaffRow from './StaffRow';
 
@@ -25,7 +26,8 @@ function StaffList() {
     columnCount: 0
   });
   const [editingStaffId, setEditingStaffId] = useState(null);  // Track which staff is being edited
-  const [editingValues, setEditingValues] = useState(null);    // Track temporary edit values
+  const [editingRow, setEditingRow] = useState(null);
+  const [editingValues, setEditingValues] = useState({});    // Track temporary edit values
   const [rows, setRows] = useState([
     Array(5).fill('') // Keep one empty row for input
   ]);
@@ -106,44 +108,37 @@ function StaffList() {
     // Update debug variables with all state
     updateDebugVariables({
       StaffList: {
-        dimensions: {
-          value: dimensions,
-          type: 'object',
-          lastUpdated: new Date().toLocaleTimeString()
+        activeStaff: {
+          value: Object.entries(rowStaffIDs).map(([rowIndex, staffId]) => ({
+            name: inputValues[rowIndex] || 'Unnamed',
+            role: roleValues[rowIndex] || 'No Role',
+            isEditing: editingRow === parseInt(rowIndex)
+          })),
+          type: 'array',
+          description: 'Currently active staff members'
         },
-        buttonCounts: {
+        buttons: {
           value: {
-            addButtons: rows.reduce((count, _, rowIndex) => 
+            addButton: rows.reduce((count, _, rowIndex) => 
               !rowStaffIDs[rowIndex] && inputValues[rowIndex] ? count + 1 : count
             , 0),
-            removeButtons: Object.values(rowStaffIDs).filter(id => id).length,
-            disabledButtons: rows.reduce((count, _, rowIndex) => 
+            removeButton: Object.values(rowStaffIDs).filter(id => id).length,
+            editButton: Object.values(rowStaffIDs).filter(id => id).length,
+            disabledAdd: rows.reduce((count, _, rowIndex) => 
               !rowStaffIDs[rowIndex] && inputValues[rowIndex] && !isValidName(inputValues[rowIndex]) ? count + 1 : count
             , 0)
           },
           type: 'object',
-          lastUpdated: new Date().toLocaleTimeString()
+          description: 'Button states in the staff list'
         },
-        LocalStorage: {
+        editingState: {
           value: {
-            currentInput: currentInputRow,
-            staffMembers: staffData,
-            staffCount: Object.keys(staffData).length,
-            rowMapping: {
-              rowStaffIDs: rowStaffIDs,
-              inputValues: inputValues,
-              roleValues: roleValues,
-              commentValues: commentValues,
-              availabilityValues: availabilityValues
-            }
+            isEditing: editingRow !== null,
+            editingStaffName: editingRow !== null ? inputValues[editingRow] : null,
+            editingValues: editingValues
           },
           type: 'object',
-          lastUpdated: new Date().toLocaleTimeString()
-        },
-        storedData: {
-          value: JSON.parse(localStorage.getItem('staff_list_data') || '{}'),
-          type: 'object',
-          description: 'Raw data from localStorage'
+          description: 'Current editing state'
         }
       }
     });
@@ -157,6 +152,8 @@ function StaffList() {
     rows,
     getStaffMember,
     isValidName,
+    editingRow,
+    editingValues,
     updateDebugVariables
   ]);
 
@@ -215,29 +212,36 @@ function StaffList() {
 
   // Handle Add button click
   const handleAddClick = useCallback((rowIndex) => {
-    if (!isValidName(inputValues[rowIndex])) return;
-
     const staffID = generateStaffID();
     const newStaff = {
       staffID,
       fullName: inputValues[rowIndex],
       role: roleValues[rowIndex] || '',
       comments: commentValues[rowIndex] || '',
-      availability: availabilityValues[rowIndex] || []
+      availability: availabilityValues[rowIndex] || [],
+      inList: true,
+      state: 'SAVED'
     };
 
+    // Add to context
     addStaffMember(newStaff);
-    setRowStaffIDs(prev => ({ ...prev, [rowIndex]: staffID }));
-    
-    // Keep the input values in state but mark the row as having a staff member
-    setInputValues(prev => ({ ...prev }));
-    setRoleValues(prev => ({ ...prev }));
-    setCommentValues(prev => ({ ...prev }));
-    setAvailabilityValues(prev => ({ ...prev }));
 
-    // Update staff count
-    updateStaffNumber(prev => prev + 1);
-  }, [inputValues, roleValues, commentValues, availabilityValues, addStaffMember, updateStaffNumber, isValidName, generateStaffID]);
+    // Update row mapping
+    setRowStaffIDs(prev => ({
+      ...prev,
+      [rowIndex]: staffID
+    }));
+
+    // Clear input row and add new empty row
+    setRows(prev => [...prev.slice(0, -1), Array(5).fill('')]);
+    
+    // Update debug variables
+    updateDebugVariables('staffMembers', {
+      [staffID]: {
+        ...newStaff
+      }
+    });
+  }, [generateStaffID, inputValues, roleValues, commentValues, availabilityValues, addStaffMember, updateDebugVariables]);
 
   const handleRemoveClick = useCallback((rowIndex) => {
     const staffID = rowStaffIDs[rowIndex];
@@ -317,10 +321,91 @@ function StaffList() {
 
   // Handle availability changes
   const handleAvailabilityChange = useCallback((rowIndex, days) => {
+    const staffId = rowStaffIDs[rowIndex];
     setAvailabilityValues(prev => ({
       ...prev,
       [rowIndex]: days
     }));
+
+    if (staffId) {
+      const staff = getStaffMember(staffId);
+      if (staff) {
+        const updatedStaff = {
+          ...staff,
+          availability: days
+        };
+        updateStaffMember(staffId, updatedStaff);
+      }
+    }
+  }, [rowStaffIDs, getStaffMember, updateStaffMember]);
+
+  // Handle edit button click
+  const handleEditClick = useCallback((rowIndex) => {
+    // Store current values for editing
+    setEditingRow(rowIndex);
+    setEditingValues({
+      name: inputValues[rowIndex] || '',
+      role: roleValues[rowIndex] || '',
+      comments: commentValues[rowIndex] || '',
+      availability: availabilityValues[rowIndex] || []
+    });
+  }, [inputValues, roleValues, commentValues, availabilityValues]);
+
+  // Handle save after editing
+  const handleSaveClick = useCallback((rowIndex) => {
+    const staffId = rowStaffIDs[rowIndex];
+    if (!staffId) return;
+
+    // Validate the edited name
+    if (!isValidName(editingValues.name)) {
+      alert('Name can only contain letters and spaces');
+      return;
+    }
+
+    // Update all values
+    setInputValues(prev => ({
+      ...prev,
+      [rowIndex]: editingValues.name
+    }));
+    setRoleValues(prev => ({
+      ...prev,
+      [rowIndex]: editingValues.role
+    }));
+    setCommentValues(prev => ({
+      ...prev,
+      [rowIndex]: editingValues.comments
+    }));
+    setAvailabilityValues(prev => ({
+      ...prev,
+      [rowIndex]: editingValues.availability
+    }));
+
+    // Update staff member in context
+    const updatedStaff = {
+      staffID: staffId,
+      fullName: editingValues.name,
+      role: editingValues.role || '',
+      comments: editingValues.comments || '',
+      availability: editingValues.availability || [],
+      inList: true,
+      state: 'SAVED'
+    };
+    updateStaffMember(staffId, updatedStaff);
+
+    // Update debug variables
+    updateDebugVariables('staffMembers', {
+      [staffId]: updatedStaff
+    });
+
+    // Clear editing state
+    setEditingRow(null);
+    setEditingValues({});
+  }, [editingValues, isValidName, rowStaffIDs, updateStaffMember, updateDebugVariables]);
+
+  // Handle cancel editing
+  const handleCancelEdit = useCallback(() => {
+    setEditingRow(null);
+    setEditingValues({});
   }, []);
 
   const headerLabels = ['STAFF', 'ROLE', 'COMMENTS', 'AVAILABILITY', ''];
@@ -338,49 +423,122 @@ function StaffList() {
         <tbody>
           {rows.map((_, rowIndex) => {
             const staffId = rowStaffIDs[rowIndex];
+            const isEditing = editingRow === rowIndex;
+            const isAnyRowEditing = editingRow !== null;
+            const isDisabled = isAnyRowEditing && !isEditing;
+
             return (
-              <tr key={rowIndex}>
+              <tr 
+                key={rowIndex}
+                className={`
+                  ${isEditing ? 'bg-blue-50' : ''}
+                  ${isDisabled ? 'opacity-50' : ''}
+                `}
+              >
                 <td>
-                  <input
-                    type="text"
-                    value={inputValues[rowIndex] || ''}
-                    onChange={(e) => handleInputChange(rowIndex, e.target.value)}
-                    placeholder="Name e.g. John"
-                    style={{ width: '100%', padding: '4px', border: '1px solid #ccc' }}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={roleValues[rowIndex] || ''}
-                    onChange={(e) => handleRoleChange(rowIndex, e.target.value)}
-                    placeholder="Role e.g. Bar Tender"
-                    style={{ width: '100%', padding: '4px', border: '1px solid #ccc' }}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="text"
-                    value={commentValues[rowIndex] || ''}
-                    onChange={(e) => handleCommentChange(rowIndex, e.target.value)}
-                    placeholder="Comments e.g. New"
-                    style={{ width: '100%', padding: '4px', border: '1px solid #ccc' }}
-                  />
-                </td>
-                <td>
-                  <Availability
-                    rowIndex={rowIndex}
-                    value={availabilityValues[rowIndex] || []}
-                    onChange={handleAvailabilityChange}
-                  />
+                  {staffId ? (
+                    isEditing ? (
+                      <input
+                        type="text"
+                        value={editingValues.name || ''}
+                        onChange={(e) => handleEditChange('name', e.target.value)}
+                        placeholder="Name e.g. John"
+                        className="w-full p-1 border rounded"
+                      />
+                    ) : (
+                      <div className="p-1">{inputValues[rowIndex] || ''}</div>
+                    )
+                  ) : (
+                    <input
+                      type="text"
+                      value={inputValues[rowIndex] || ''}
+                      onChange={(e) => handleInputChange(rowIndex, e.target.value)}
+                      placeholder="Name e.g. John"
+                      className="w-full p-1 border rounded"
+                      disabled={isDisabled}
+                    />
+                  )}
                 </td>
                 <td>
                   {staffId ? (
-                    <RemoveButton onClick={() => handleRemoveClick(rowIndex)} />
+                    isEditing ? (
+                      <input
+                        type="text"
+                        value={editingValues.role || ''}
+                        onChange={(e) => handleEditChange('role', e.target.value)}
+                        placeholder="Role e.g. Bar Tender"
+                        className="w-full p-1 border rounded"
+                      />
+                    ) : (
+                      <div className="p-1">{roleValues[rowIndex] || ''}</div>
+                    )
+                  ) : (
+                    <input
+                      type="text"
+                      value={roleValues[rowIndex] || ''}
+                      onChange={(e) => handleRoleChange(rowIndex, e.target.value)}
+                      placeholder="Role e.g. Bar Tender"
+                      className="w-full p-1 border rounded"
+                      disabled={isDisabled}
+                    />
+                  )}
+                </td>
+                <td>
+                  {staffId ? (
+                    isEditing ? (
+                      <input
+                        type="text"
+                        value={editingValues.comments || ''}
+                        onChange={(e) => handleEditChange('comments', e.target.value)}
+                        placeholder="Comments e.g. New"
+                        className="w-full p-1 border rounded"
+                      />
+                    ) : (
+                      <div className="p-1">{commentValues[rowIndex] || ''}</div>
+                    )
+                  ) : (
+                    <input
+                      type="text"
+                      value={commentValues[rowIndex] || ''}
+                      onChange={(e) => handleCommentChange(rowIndex, e.target.value)}
+                      placeholder="Comments e.g. New"
+                      className="w-full p-1 border rounded"
+                      disabled={isDisabled}
+                    />
+                  )}
+                </td>
+                <td>
+                  <Availability
+                    value={isEditing ? editingValues.availability : (availabilityValues[rowIndex] || [])}
+                    onChange={(days) => isEditing ? handleEditChange('availability', days) : handleAvailabilityChange(rowIndex, days)}
+                    disabled={staffId ? (!isEditing || isDisabled) : isDisabled}
+                  />
+                </td>
+                <td className="flex gap-1">
+                  {staffId ? (
+                    <>
+                      <EditButton
+                        onEdit={() => isEditing ? handleSaveClick(rowIndex) : handleEditClick(rowIndex)}
+                        isEditing={isEditing}
+                        disabled={isDisabled}
+                      />
+                      {isEditing && (
+                        <button
+                          onClick={handleCancelEdit}
+                          className="border border-gray-300 px-2 py-1 text-sm rounded hover:bg-gray-100"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <RemoveButton 
+                        onClick={() => handleRemoveClick(rowIndex)} 
+                        disabled={isDisabled}
+                      />
+                    </>
                   ) : inputValues[rowIndex] && !rowStaffIDs[rowIndex] ? (
                     <AddButton
                       onAdd={() => handleAddClick(rowIndex)}
-                      disabled={!isValidName(inputValues[rowIndex])}
+                      disabled={!isValidName(inputValues[rowIndex]) || isDisabled}
                     />
                   ) : null}
                 </td>

@@ -7,9 +7,17 @@ import ShiftTable from './ShiftTable';
 import StaffList from './StaffList';
 
 function TabNavigation() {
-    // Keep track of which tab is currently selected (starts with Tab 1)
-    const [activeTab, setActiveTab] = React.useState("Tab 1");
+    // Load the active tab from localStorage or default to "Tab 1"
+    const [activeTab, setActiveTab] = React.useState(() => {
+      return localStorage.getItem('activeTab') || "Tab 1";
+    });
     const { updateDebugVariables } = useDebug();
+
+    // Update both localStorage and debug info when tab changes
+    const handleTabChange = useCallback((tabName) => {
+      setActiveTab(tabName);
+      localStorage.setItem('activeTab', tabName);
+    }, []);
 
     // This helps us track which tab is active for debugging purposes
     // It's like having a notepad that records which tab we're looking at
@@ -20,6 +28,16 @@ function TabNavigation() {
             value: activeTab,
             lastUpdated: new Date().toLocaleTimeString(),
             type: "string"
+          },
+          activeComponents: {
+            value: {
+              ShiftTable: activeTab === "Tab 1",
+              StaffList: activeTab === "Tab 2",
+              TabNavigation: true, // Always active
+              StaffDetail: true    // Always active as it's shared
+            },
+            lastUpdated: new Date().toLocaleTimeString(),
+            type: "object"
           }
         }
       });
@@ -40,7 +58,7 @@ function TabNavigation() {
             className={`flex items-center px-4 py-2 cursor-pointer ${
               activeTab === "Tab 1" ? "font-bold text-blue-500" : ""
             }`}
-            onClick={() => setActiveTab("Tab 1")}
+            onClick={() => handleTabChange("Tab 1")}
           >
             Shift Table
           </a>
@@ -49,7 +67,7 @@ function TabNavigation() {
             className={`flex items-center px-4 py-2 cursor-pointer ${
               activeTab === "Tab 2" ? "font-bold text-blue-500" : ""
             }`}
-            onClick={() => setActiveTab("Tab 2")}
+            onClick={() => handleTabChange("Tab 2")}
           >
             Staff List
           </a>

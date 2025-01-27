@@ -219,24 +219,6 @@ export function StaffDetailProvider({ children }) {
           type: "number",
           description: "Number of active staff members"
         },
-        availabilitySummary: {
-          value: staffMembers.map(staff => ({
-            name: staff.fullName,
-            days: staff.availability,
-            totalDays: staff.availability.length
-          })),
-          type: "array",
-          description: "Availability summary for each staff member"
-        },
-        availabilityStats: {
-          value: {
-            mostCommonDay: getMostCommonDay(staffMembers),
-            leastCommonDay: getLeastCommonDay(staffMembers),
-            averageDaysPerStaff: getAverageDaysPerStaff(staffMembers)
-          },
-          type: "object",
-          description: "Statistics about staff availability"
-        },
         localStorage: {
           value: {
             staffMembers,
