@@ -761,6 +761,97 @@ const YourComponent = () => {
 - [Debug System README](../src/components/Debug/README.md)
 - [Example Components](../src/components/Debug/examples/)
 
+## Staff State Management Feature
+**Date:** 2025-01-27
+**Component:** StaffDetailContext.js
+
+### Feature Description
+Added state management to staff members to handle different stages of their data lifecycle:
+
+1. **States Available:**
+   - NEW: Initial state when adding a new staff member
+   - SAVED: After successfully adding/saving a staff member
+   - EDITING: When modifying an existing staff member's details
+
+2. **Safety Measures:**
+   - Prevents adding new staff while editing existing staff
+   - Tracks which staff member is being edited
+   - Maintains data integrity during state transitions
+
+3. **Implementation Details:**
+   - Added StaffMemberState type to track states
+   - Added editingStaffId tracking in context
+   - Enhanced addStaffMember to check for ongoing edits
+   - Added clear documentation for maintainability
+
+### User Experience Benefits
+- Prevents data conflicts
+- Clear indication of current operations
+- Safer editing process
+- Better error prevention
+
+### Technical Notes
+- No backend changes required
+- Uses React's useState for state management
+- Maintains existing functionality while adding safety
+
+## Staff List Management
+
+### 1. Staff Data Tracking (2025-01-27)
+**Description**: Implemented local storage and tracking of staff data with debug visibility.
+
+**Components**:
+1. **Local Storage**
+   - Staff objects stored in `localStaffData` state
+   - Each staff member has:
+     - Unique staffID
+     - Full name
+     - Role
+     - Comments
+     - Availability
+
+2. **Debug Tracking**
+   - Current input values for active row
+   - All stored staff members
+   - Total staff count
+   - Button states (add/remove/disabled)
+
+**Workflow**:
+1. User sees one empty input row initially
+2. Add button appears when name field has input
+3. On valid input and Add click:
+   - Staff data is stored locally
+   - Input row remains for next entry
+   - Debug view updates with new data
+
+**Validation**:
+- Only full name field requires validation
+- Must contain only letters and spaces
+- Add button is disabled for invalid input
+
+**Debug Variables**:
+```javascript
+{
+  StaffList: {
+    currentInput: {
+      fullName: string,
+      role: string,
+      comments: string,
+      availability: array
+    },
+    storedStaffMembers: {
+      [staffID]: StaffObject
+    },
+    staffCount: number,
+    buttonCounts: {
+      addButtons: number,
+      removeButtons: number,
+      disabledButtons: number
+    }
+  }
+}
+```
+
 ## StaffList Table Dimension Tracking
 **Date:** 2025-01-26
 **Component:** StaffList.js

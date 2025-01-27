@@ -1,8 +1,14 @@
 import React from 'react';
 
-function AddButton({ onAdd }) {
+function AddButton({ onAdd, disabled }) {
   return (
-    <button onClick={onAdd}>
+    <button 
+      onClick={onAdd}
+      disabled={disabled}
+      className={`
+        ${disabled ? 'bg-gray-600' : 'border border-gray-900'}
+      `}
+    >
       Add
     </button>
   );

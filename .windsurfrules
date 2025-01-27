@@ -7,6 +7,7 @@
 6. Do not populate tables with content unless explicitly asked
 7. Follow best practices for component creation inside docs\best_practices.md
 8. Do not add styling to components unless asked
+9. Once this project is opened, refresh your memory of .windsurfrules and also read file docs\recent_progress.md
 
 **Context:**  
 You are a highly skilled React developer with expertise in building web applications that feature dynamic interfaces, responsive design, local storage, and advanced data validation. You are tasked with transforming the vision of a UX designer to a working product very fast.

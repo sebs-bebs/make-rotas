@@ -476,10 +476,10 @@ Created a table with 3 rows (1 header + 2 body) when explicitly asked for 2 rows
 4. Ask for clarification when structure is ambiguous
 
 ### Lessons Learned
-- Be explicit about counting conventions
-- Don't make assumptions about structure requirements
-- Consider all rows when counting, including headers
-- Importance of precise requirement interpretation
+1. Be explicit about counting conventions
+2. Don't make assumptions about structure requirements
+3. Consider all rows when counting, including headers
+4. Importance of precise requirement interpretation
 
 ## Premature Styling Implementation
 **Date:** 2025-01-26
@@ -522,10 +522,10 @@ Added unsolicited styling to a button when the requirement was simply "a button 
 4. Follow minimal implementation principle
 
 ### Lessons Learned
-- Importance of precise requirement interpretation
-- Don't assume styling needs
-- Keep initial implementations minimal
-- Wait for explicit styling requests
+1. Importance of precise requirement interpretation
+2. Don't assume styling needs
+3. Keep initial implementations minimal
+4. Wait for explicit styling requests
 
 ## Static Table Dimension Tracking Implementation
 **Date:** 2025-01-26
@@ -571,10 +571,10 @@ const columnCount = tableRef.current?.querySelector('tr')?.children.length || 0;
 4. Review variable naming for accuracy
 
 ### Lessons Learned
-- "Tracking" implies dynamic monitoring
-- Static values don't constitute tracking
-- Variable names should reflect their true purpose
-- Debug information should be accurate and dynamic
+1. "Tracking" implies dynamic monitoring
+2. Static values don't constitute tracking
+3. Variable names should reflect their true purpose
+4. Debug information should be accurate and dynamic
 
 ## StaffContext Implementation Issues
 **Date:** 2025-01-26
@@ -831,3 +831,154 @@ During the implementation of the staff name input field:
    - Include styling review in component changes
    - Verify Tailwind classes are preserved
    - Test component appearance in different states
+
+## StaffList Component - Unauthorized Styling and Debug Display Issues
+**Date:** 2025-01-27
+**Component:** src/components/StaffList.js
+
+### Issue Description
+1. Added unauthorized styling to the header row:
+   ```jsx
+   <tr className="bg-gray-100">  // Unauthorized styling
+   ```
+2. Debug display stopped showing staff list information due to:
+   - Removal of staff-specific debug variables
+   - Changes to the debug update structure
+
+### Root Cause
+1. **Styling Issue:**
+   - During component refactoring, added Tailwind classes without authorization
+   - Violated rule #8: "Do not add styling to components unless asked"
+
+2. **Debug Display Issue:**
+   - Simplified debug variables too aggressively
+   - Removed critical staff list information from debug context
+
+### Solution
+1. **Remove Unauthorized Styling:**
+   - Remove all Tailwind classes from header row
+   - Return to original unstyled structure
+
+2. **Restore Debug Display:**
+   - Restore staff list debug information
+   - Maintain original debug variable structure
+   - Keep detailed tracking of staff-related state
+
+### Implementation Plan
+1. **Header Row Fix:**
+   ```jsx
+   // Before (with unauthorized styling)
+   <tr className="bg-gray-100">
+
+   // After (without styling)
+   <tr>
+   ```
+
+2. **Debug Variables Restoration:**
+   ```jsx
+   updateDebugVariables({
+     StaffList: {
+       inputFields: {
+         value: activeInputFields,
+         type: "number",
+         description: "Number of active input fields"
+       },
+       // ... other staff-related debug info
+     }
+   });
+   ```
+
+### Prevention Strategies
+1. **Styling Changes:**
+   - Double-check styling rules before any UI changes
+   - Document any necessary style changes for approval
+   - Keep a checklist of unauthorized modifications
+
+2. **Debug System:**
+   - Maintain a list of required debug variables
+   - Test debug display after any refactoring
+   - Document debug variable structure
+
+### Related Files
+- `src/components/StaffList.js`
+- `src/components/Debug/DebugDisplay.js`
+
+## LocalStorage Persistence Bug (2025-01-27)
+
+### Issue
+Staff members were not persisting after page refresh despite being saved to localStorage.
+
+### Root Cause Analysis
+1. Data flow issues between components:
+   - StaffDetailContext was saving data but not properly formatting it
+   - StaffList wasn't properly initializing from loaded data
+   - getStaffMember function wasn't handling array returns correctly
+
+### Fix Implementation
+1. Updated StaffDetailContext:
+   - Modified getStaffMember to handle both single and multiple staff retrieval
+   - Added proper data validation on load
+   - Added debug logging for data operations
+
+2. Updated StaffList initialization:
+   - Added proper handling of loaded staff data
+   - Added filtering for active staff members
+   - Added null checks and default values
+   - Added debug logging for initialization process
+
+3. Enhanced storage utility:
+   - Added comprehensive debug logging
+   - Improved data structure validation
+   - Added proper error handling
+
+### Verification Steps
+1. Add new staff member
+2. Check console for "Saving staff list data" message
+3. Refresh page
+4. Check console for "Raw stored data" message
+5. Verify staff member appears in list
+
+### Prevention
+1. Added debug logging throughout the data flow
+2. Improved type checking and validation
+3. Added proper null checks and default values
+4. Documented the data flow process
+
+### Related Components
+- StaffDetailContext.js
+- StaffList.js
+- storage.js
+
+## Bugs and Fixes
+
+## Staff List Component
+
+### 1. Duplicate Row Bug (2025-01-27)
+**Issue**: After adding a staff member, two rows would appear instead of one empty input row.
+
+**Root Cause**: 
+- The component was maintaining a base empty row in the `rows` state
+- When adding a staff member, it was also adding another empty row if it was the last row
+- This resulted in duplicate rows being displayed
+
+**Fix**:
+- Removed the automatic row addition after staff member creation
+- Maintained input values in state instead of clearing them
+- Added proper local storage tracking of staff data
+- Added debug variables to track staff state
+
+### 2. Input Value Display (2025-01-27)
+**Issue**: Input values were not being displayed after fixing the duplicate row bug.
+
+**Root Cause**:
+- The fix for duplicate rows was clearing input values from state using `delete`
+- This caused the input fields to lose their values
+
+**Fix**:
+- Maintained input values in state by not deleting them
+- Added proper local storage of staff data
+- Added debug tracking for:
+  - Current input values
+  - Stored staff members
+  - Staff count
+  - Button states

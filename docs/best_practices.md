@@ -173,3 +173,24 @@ This approach should be used as a template for handling similar tasks in the fut
 5. Facilitate team discussion before complex implementations
 
 This approach aligns with React's component-based architecture while maintaining clean, maintainable code practices.
+
+## UX Copy Guidelines
+
+### Input Field Placeholders
+Since we're not using labels above input fields, placeholders serve as critical UX elements to guide users. They should:
+1. Be clear and descriptive
+2. Include examples where helpful
+3. Use natural, conversational language
+
+Current placeholder texts:
+```
+Staff Input Field:   "Name e.g. John"
+Role Input Field:    "Role e.g Bar Tender"
+Comments Input Field: "Comments e.g. New"
+```
+
+These placeholders are intentionally designed to:
+- Show the expected format (e.g., first name for staff)
+- Provide real-world examples (e.g., Bar Tender for role)
+- Keep it simple but informative
+- Help users understand what information goes where without needing additional labels

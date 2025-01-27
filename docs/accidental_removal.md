@@ -77,3 +77,23 @@ During the implementation of row and column tracking variables, the table struct
 - Only implement changes that are explicitly requested
 - Document any suggested structural changes before implementation
 - Get approval before modifying existing code patterns
+
+## Accidental Code Removal - StaffList Component
+**Date:** 2025-01-27
+
+### Removed Code
+1. `updateDimensions` function was accidentally moved from its original position
+2. Debug variables were accidentally reordered
+
+### Impact
+- No functional impact, but code organization was affected
+- Debug display order was changed unintentionally
+
+### Resolution
+1. Move `updateDimensions` function back to its original position
+2. Restore original debug variables order
+
+### Prevention
+1. Always use the `{{ ... }}` placeholder for unchanged code
+2. Keep existing code organization unless explicitly asked to change
+3. Document any intentional code moves or reorganization

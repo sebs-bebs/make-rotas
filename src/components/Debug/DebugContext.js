@@ -11,10 +11,16 @@ export const DebugProvider = ({ children }) => {
   // Optimized update function that only updates when values actually change
   const updateDebugVariables = useCallback((newVariables) => {
     setDebugVariables(prev => {
+      // Deep compare the new values with previous values
       const hasChanges = Object.entries(newVariables).some(([componentName, componentVars]) => {
-        return Object.entries(componentVars).some(([varName, value]) => {
-          const prevValue = prev[componentName]?.[varName]?.value;
-          return prevValue !== value.value;
+        if (!prev[componentName]) return true;
+        
+        return Object.entries(componentVars).some(([varName, newValue]) => {
+          const prevValue = prev[componentName][varName];
+          if (!prevValue) return true;
+          
+          // Compare stringified values to handle objects and arrays
+          return JSON.stringify(prevValue.value) !== JSON.stringify(newValue.value);
         });
       });
 
@@ -22,18 +28,19 @@ export const DebugProvider = ({ children }) => {
         return prev;
       }
 
-      return {
-        ...prev,
-        ...Object.entries(newVariables).reduce((acc, [componentName, componentVars]) => {
-          acc[componentName] = {
-            ...prev[componentName],
-            ...componentVars
-          };
-          return acc;
-        }, {})
-      };
+      // Create new object without mutating previous state
+      const nextState = { ...prev };
+      
+      Object.entries(newVariables).forEach(([componentName, componentVars]) => {
+        nextState[componentName] = {
+          ...nextState[componentName],
+          ...componentVars
+        };
+      });
+
+      return nextState;
     });
-  }, []);
+  }, []); // Empty dependency array since this function only uses setState
 
   return (
     <DebugContext.Provider value={{ 
