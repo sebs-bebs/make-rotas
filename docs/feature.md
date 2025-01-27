@@ -807,6 +807,50 @@ StaffList: {
 3. Track changes in dimensions over time
 4. Add error handling for dimension changes
 
+## Staff Removal Feature
+**Date:** 2025-01-27
+**Component:** StaffList.js
+
+### Feature Description
+Implemented the ability to remove staff members from the table:
+1. Remove button appears after a staff member is added
+2. Clicking remove:
+   - Deletes the row from the table
+   - Removes the staff member object from context
+   - Updates the staff count
+   - Cleans up associated row data
+
+### Implementation Details
+1. **Data Tracking**:
+   - Added `rowStaffIDs` state to map rows to staff IDs
+   - Store staff ID when adding new staff member
+   - Use staff ID to remove correct staff member
+
+2. **Cleanup Process**:
+   - Remove staff member from StaffDetailContext
+   - Delete row from table
+   - Clean up row-specific state:
+     - Input values
+     - Clicked rows
+     - Row-to-staffID mapping
+
+3. **State Updates**:
+   - Decrement staff number counter
+   - Remove row from visual table
+   - Clean up all associated state
+
+### User Experience
+- Remove button appears in place of Add button
+- Staff removal is immediate
+- Table updates instantly
+- Staff count decrements
+
+### Debug Tracking
+The following variables are tracked in DebugDisplay:
+- Staff number (decrements on removal)
+- Table rows (updates after removal)
+- Active input fields (updates after removal)
+
 ## Feature Implementation Log
 
 ## ShiftTable Component - Frozen Rows and Columns Debug Tracking (2025-01-26)

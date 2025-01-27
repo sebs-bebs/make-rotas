@@ -18,6 +18,7 @@ const DebugDisplay = () => {
             staffID: staff.staffID,
             fullName: staff.fullName,
             role: staff.role,
+            comments: staff.comments,
             inList: staff.inList
           })),
           lastUpdated: new Date().toLocaleTimeString(),

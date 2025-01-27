@@ -5,9 +5,7 @@ const StaffDetailContext = createContext();
 /**
  * @typedef {Object} StaffMember
  * @property {string} staffID - Unique identifier for the staff member
- * @property {string} firstName - First name of the staff member
- * @property {string} lastName - Last name of the staff member
- * @property {string} fullName - Computed full name (firstName + lastName)
+ * @property {string} fullName - Computed full name 
  * @property {string} role - Role of the staff member
  * @property {string} comments - Additional comments
  * @property {string[]} availability - Array of day names indicating availability
@@ -24,7 +22,6 @@ export function StaffDetailProvider({ children }) {
   const addStaffMember = (staffMember) => {
     setStaffMembers(prev => [...prev, {
       ...staffMember,
-      fullName: `${staffMember.firstName} ${staffMember.lastName}`.trim(),
       inList: true
     }]);
   };
@@ -38,10 +35,6 @@ export function StaffDetailProvider({ children }) {
     setStaffMembers(prev => prev.map(staff => {
       if (staff.staffID === staffID) {
         const updated = { ...staff, ...updates };
-        // Ensure fullName is always synchronized
-        if (updates.firstName || updates.lastName) {
-          updated.fullName = `${updated.firstName} ${updated.lastName}`.trim();
-        }
         return updated;
       }
       return staff;

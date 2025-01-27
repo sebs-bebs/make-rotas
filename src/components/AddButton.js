@@ -1,21 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-function AddButton({ onAdd, onRemove }) {
-  const [isAdd, setIsAdd] = useState(true);
-
-  const handleClick = () => {
-    if (isAdd) {
-      onAdd();
-      setIsAdd(false);
-    } else {
-      onRemove();
-      setIsAdd(true);
-    }
-  };
-
+function AddButton({ onAdd }) {
   return (
-    <button onClick={handleClick}>
-      {isAdd ? 'Add' : 'Remove'}
+    <button onClick={onAdd}>
+      Add
     </button>
   );
 }

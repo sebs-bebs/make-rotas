@@ -720,3 +720,114 @@ const handleRemoveClick = useCallback((rowIndex) => {
 - Maintain clear state management
 - Test both states of toggle buttons
 - Ensure proper row index tracking
+
+## Over-Implementation of AddButton Component
+**Date:** 2025-01-27
+**Component:** AddButton.js, StaffList.js
+
+### Issue Description
+When asked to remove the boolean operator from AddButton that changes Add to Remove, the implementation:
+1. Added unnecessary Remove button functionality
+2. Modified table structure unnecessarily
+3. Added complexity that wasn't requested
+
+### Root Cause
+- Assumed additional requirements without explicit request
+- Tried to solve multiple issues at once
+- Failed to follow minimal implementation principle
+
+### Solution
+- Keep AddButton.js focused only on Add functionality
+- Wait for explicit requirements before adding Remove functionality
+- Follow incremental development approach
+
+### Lessons Learned
+1. **Minimal Implementation:**
+   - Implement only what is explicitly requested
+   - Avoid anticipating future requirements
+   - Make small, focused changes
+
+## Premature Implementation of Remove Button
+**Date:** 2025-01-27
+**Component:** StaffList.js
+
+### Issue Description
+The implementation added Remove button functionality before it was requested, which led to:
+1. Non-functioning Remove buttons appearing in the UI
+2. Confusion in the user interface where buttons appear but don't work
+3. Violation of the minimal implementation principle
+
+### Root Cause
+- Assumed Remove functionality should be added along with the Add button visibility toggle
+- Failed to wait for explicit requirements
+- Added complexity before it was needed
+
+### Solution
+1. Remove the premature RemoveButton implementation
+2. Keep only the requested Add button visibility toggle
+3. Wait for explicit requirements before adding Remove functionality
+
+### Lessons Learned
+1. **Minimal Implementation:**
+   - Implement only what is explicitly requested
+   - Don't anticipate or add features before they're needed
+   - Keep changes focused and small
+
+2. **Feature Addition:**
+   - Wait for explicit requirements
+   - Verify functionality before adding new features
+   - Test each feature independently
+
+## Documentation Location Error
+**Date:** 2025-01-27
+**Component:** Documentation
+
+### Issue Description
+Attempted to document implementation issues in best_practices.md instead of bugs_fixes.md
+
+### Root Cause
+- Misclassified implementation issue as a best practice
+- Failed to properly categorize documentation
+
+### Solution
+- Document implementation issues and bugs in bugs_fixes.md
+- Reserve best_practices.md for established patterns and guidelines
+
+### Lessons Learned
+1. **Documentation Organization:**
+   - Follow established documentation structure
+   - Place implementation issues in bugs_fixes.md
+   - Keep best practices separate from bug fixes
+
+## Accidental Removal of Tailwind CSS Classes
+**Date:** 2025-01-27
+**Component:** StaffList.js
+
+### Issue Description
+During the implementation of the staff name input field:
+1. Tailwind CSS classes were accidentally removed
+2. Basic styling was used instead of the project's Tailwind classes
+3. Input field lost its consistent styling with the rest of the application
+
+### Root Cause
+- Focus on functionality led to overlooking styling requirements
+- Basic CSS classes were used as placeholders
+- Failed to maintain styling consistency
+
+### Solution
+1. Restored Tailwind CSS classes for the input field:
+   - Added width control (`w-full`)
+   - Proper padding and border styling
+   - Focus state styling
+   - Consistent rounded corners
+
+### Lessons Learned
+1. **Styling Consistency:**
+   - Maintain Tailwind CSS usage throughout components
+   - Don't replace Tailwind classes with basic CSS
+   - Follow project's styling conventions
+
+2. **Implementation Checklist:**
+   - Include styling review in component changes
+   - Verify Tailwind classes are preserved
+   - Test component appearance in different states
