@@ -127,6 +127,34 @@
 - Centralized state management
 - Debug-first development approach
 
+## [2025-01-27] Enhanced User Feedback with Custom Notifications
+
+### Changes Made
+1. **Improved Notification System**
+   - Replaced browser alerts with custom styled notifications
+   - Notifications now appear in bottom-right corner for better UX
+   - Made Notification component more flexible with customizable messages
+   - Added proper error handling for invalid staff names
+
+2. **Component Updates**
+   - Enhanced `Notification.js` to support custom messages and descriptions
+   - Updated `StaffList.js` to use the new notification system
+   - Improved validation feedback when editing staff names
+
+3. **User Experience Improvements**
+   - More consistent and professional error messages
+   - Less intrusive notifications (no blocking alerts)
+   - Better visual feedback for validation errors
+
+### Files Modified
+- `src/components/Notification.js`
+- `src/components/StaffList.js`
+
+### Next Steps
+- Consider adding different notification types (success, warning, error)
+- Add animations for notification appear/disappear
+- Consider notification timeout for auto-dismiss
+
 ## Notes
 - This document will be updated as we progress
 - Priority order may change based on user requirements

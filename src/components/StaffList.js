@@ -364,8 +364,8 @@ function StaffList() {
 
     // Validate the edited name
     if (!isValidName(editingValues.name)) {
-      setNotificationMessage('Invalid Name Format');
-      setNotificationDescription('Name can only contain letters and spaces');
+      setNotificationMessage('Please Check Staff Name');
+      setNotificationDescription('Staff names should only include letters and spaces. For example: "John Smith"');
       setShowNotification(true);
       return;
     }
