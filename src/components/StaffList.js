@@ -8,6 +8,7 @@ import RemoveButton from './RemoveButton';
 import EditButton from './EditButton';
 import Availability from './Availability';
 import StaffRow from './StaffRow';
+import Notification from './Notification';
 
 function StaffList() {
   const { updateDebugVariables } = useDebug();
@@ -38,6 +39,11 @@ function StaffList() {
   const [availabilityValues, setAvailabilityValues] = useState({});
   const [rowStaffIDs, setRowStaffIDs] = useState({});
   const [storedStaff, setStoredStaff] = useState({}); // Track all staff data locally
+
+  // Add notification state
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationDescription, setNotificationDescription] = useState('');
 
   // Initialize from loaded data
   useEffect(() => {
@@ -358,7 +364,9 @@ function StaffList() {
 
     // Validate the edited name
     if (!isValidName(editingValues.name)) {
-      alert('Name can only contain letters and spaces');
+      setNotificationMessage('Invalid Name Format');
+      setNotificationDescription('Name can only contain letters and spaces');
+      setShowNotification(true);
       return;
     }
 
@@ -412,6 +420,12 @@ function StaffList() {
 
   return (
     <div style={{ width: '100%' }}>
+      <Notification
+        show={showNotification}
+        message={notificationMessage}
+        description={notificationDescription}
+        onClose={() => setShowNotification(false)}
+      />
       <table ref={tableRef} style={{ width: '100%' }}>
         <thead>
           <tr>
