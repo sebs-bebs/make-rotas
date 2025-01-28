@@ -9,6 +9,9 @@ const DebugDisplay = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [openSections, setOpenSections] = useState(new Set());
 
+  // List of valid components that should always be shown
+  const validComponents = ['StaffDetail', 'TabNavigation', 'StaffList', 'ShiftTable'];
+
   // Update staff details in debug display
   useEffect(() => {
     updateDebugVariables({
@@ -29,13 +32,17 @@ const DebugDisplay = () => {
   }, [staffMembers, updateDebugVariables]);
 
   const filteredComponents = useMemo(() => {
-    return Object.entries(debugVariables).filter(([componentName, variables]) => {
-      const lowerSearch = searchTerm.toLowerCase();
-      return (
-        componentName.toLowerCase().includes(lowerSearch) ||
-        JSON.stringify(variables).toLowerCase().includes(lowerSearch)
-      );
-    });
+    // Start with all valid components
+    return validComponents
+      .filter(componentName => {
+        const lowerSearch = searchTerm.toLowerCase();
+        const variables = debugVariables[componentName] || {};
+        return (
+          componentName.toLowerCase().includes(lowerSearch) ||
+          JSON.stringify(variables).toLowerCase().includes(lowerSearch)
+        );
+      })
+      .map(componentName => [componentName, debugVariables[componentName] || {}]);
   }, [debugVariables, searchTerm]);
 
   const toggleSection = (componentName) => {
@@ -51,10 +58,10 @@ const DebugDisplay = () => {
   };
 
   const toggleAllSections = () => {
-    if (openSections.size === Object.keys(debugVariables).length) {
+    if (openSections.size === validComponents.length) {
       setOpenSections(new Set());
     } else {
-      setOpenSections(new Set(Object.keys(debugVariables)));
+      setOpenSections(new Set(validComponents));
     }
   };
 
@@ -68,38 +75,41 @@ const DebugDisplay = () => {
         onClick={toggleDebug}
       />
       {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/90 text-green-400 p-6 font-mono text-sm rounded-lg max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col z-50 border border-green-400/30">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-white font-bold">Debug Variables</h3>
-          <button 
-            onClick={toggleDebug}
-            className="text-green-400 hover:text-green-300 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Search and Controls */}
-        <div className="flex items-center space-x-4 mb-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search variables..."
-              className="w-full bg-black/50 border border-green-400/30 rounded px-3 py-1 text-green-400 placeholder-green-400/50 focus:outline-none focus:border-green-400"
-            />
+      <div className="fixed inset-0 bg-black/90 text-green-400 font-mono text-sm z-50 border border-green-400/30 p-8">
+        {/* Fixed Header */}
+        <div className="fixed top-0 left-0 right-0 bg-black/90 border-b border-green-400/30 p-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-white font-bold">Debug Variables</h3>
+            <button 
+              onClick={toggleDebug}
+              className="text-green-400 hover:text-green-300 transition-colors"
+            >
+              ✕
+            </button>
           </div>
-          <button
-            onClick={toggleAllSections}
-            className="text-xs text-green-400 hover:text-green-300 transition-colors"
-          >
-            {openSections.size === Object.keys(debugVariables).length ? 'Collapse All' : 'Expand All'}
-          </button>
+
+          {/* Search and Controls */}
+          <div className="flex items-center space-x-4">
+            <div className="flex-1 w-[120%]">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search variables..."
+                className="w-full bg-black/50 border border-green-400/30 rounded px-3 py-1 text-green-400 placeholder-green-400/50 focus:outline-none focus:border-green-400"
+              />
+            </div>
+            <button
+              onClick={toggleAllSections}
+              className="text-xs text-green-400 hover:text-green-300 transition-colors whitespace-nowrap"
+            >
+              {openSections.size === validComponents.length ? 'Collapse All' : 'Expand All'}
+            </button>
+          </div>
         </div>
 
-        {/* Component Sections */}
-        <div className="space-y-4 overflow-y-auto">
+        {/* Scrollable Content */}
+        <div className="mt-36 space-y-6 overflow-auto h-[calc(100vh-8rem)] overflow-x-auto">
           {filteredComponents.map(([componentName, variables]) => (
             <ComponentSection
               key={componentName}

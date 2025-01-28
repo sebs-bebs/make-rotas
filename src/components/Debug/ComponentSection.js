@@ -11,6 +11,9 @@ const ComponentSection = ({ componentName, variables, isOpen, onToggle }) => {
   const validComponents = ['StaffDetail', 'TabNavigation', 'StaffList', 'ShiftTable'];
   if (!validComponents.includes(componentName)) return null;
 
+  // If this component doesn't have variables yet, show empty state
+  const displayVariables = variables || {};
+
   return (
     <div className="border-b border-green-400/20 pb-4">
       <div 
@@ -33,7 +36,7 @@ const ComponentSection = ({ componentName, variables, isOpen, onToggle }) => {
         <pre className={`whitespace-pre-wrap text-xs mt-2 pl-4 ${
           !isActive ? 'opacity-50' : ''
         }`}>
-          {JSON.stringify(variables, null, 2)}
+          {JSON.stringify(displayVariables, null, 2)}
         </pre>
       )}
     </div>

@@ -7,10 +7,18 @@ import ShiftTable from './ShiftTable';
 import StaffList from './StaffList';
 
 function TabNavigation() {
-    // Load the active tab from localStorage or default to "Tab 1"
+    // Load the active tab from localStorage or default to ShiftTable for first-time users
     const [activeTab, setActiveTab] = React.useState(() => {
-      return localStorage.getItem('activeTab') || "Tab 1";
+      // Check if this is the first visit
+      const isFirstVisit = !localStorage.getItem('hasVisited');
+      if (isFirstVisit) {
+        localStorage.setItem('hasVisited', 'true');
+        localStorage.setItem('activeTab', 'ShiftTable');
+        return 'ShiftTable';
+      }
+      return localStorage.getItem('activeTab') || 'ShiftTable';
     });
+    
     const { updateDebugVariables } = useDebug();
 
     // Update both localStorage and debug info when tab changes
@@ -31,8 +39,8 @@ function TabNavigation() {
           },
           activeComponents: {
             value: {
-              ShiftTable: activeTab === "Tab 1",
-              StaffList: activeTab === "Tab 2",
+              ShiftTable: activeTab === "ShiftTable",
+              StaffList: activeTab === "StaffList",
               TabNavigation: true, // Always active
               StaffDetail: true    // Always active as it's shared
             },
@@ -56,28 +64,28 @@ function TabNavigation() {
           {/* First tab - becomes blue when selected */}
           <a
             className={`flex items-center px-4 py-2 cursor-pointer ${
-              activeTab === "Tab 1" ? "font-bold text-blue-500" : ""
+              activeTab === "ShiftTable" ? "font-bold text-blue-500" : ""
             }`}
-            onClick={() => handleTabChange("Tab 1")}
+            onClick={() => handleTabChange("ShiftTable")}
           >
             Shift Table
           </a>
           {/* Second tab - becomes blue when selected */}
           <a
             className={`flex items-center px-4 py-2 cursor-pointer ${
-              activeTab === "Tab 2" ? "font-bold text-blue-500" : ""
+              activeTab === "StaffList" ? "font-bold text-blue-500" : ""
             }`}
-            onClick={() => handleTabChange("Tab 2")}
+            onClick={() => handleTabChange("StaffList")}
           >
             Staff List
           </a>
         </div>
         {/* Area below the tabs where the content is displayed */}
         <div className="tab-content mt-4 flex flex-col">
-          {/* Show ShiftTable when Tab 1 is selected */}
-          {activeTab === "Tab 1" && <ShiftTable />}
-          {/* Show StaffList when Tab 2 is selected */}
-          {activeTab === "Tab 2" && <StaffList />}
+          {/* Show ShiftTable when ShiftTable is selected */}
+          {activeTab === "ShiftTable" && <ShiftTable />}
+          {/* Show StaffList when StaffList is selected */}
+          {activeTab === "StaffList" && <StaffList />}
         </div>
       </div>
     );
