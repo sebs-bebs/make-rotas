@@ -1,15 +1,218 @@
 # Recent Progress and Priorities
 
-## Current Focus (as of 2025-01-27)
+## Current Focus (as of 2025-01-28)
 
-### Latest Implementation (2025-01-27 06:40 UTC)
-1. **Add Button Visibility Enhancement**
+### Implementation Strategy Improvements
+1. **Question-Driven Development**
+   - Break down complex changes into simple yes/no questions
+   - Each question focuses on one specific aspect
+   - Questions build upon previous answers
+   - Example sequence:
+     ```
+     Q1: "Should TabNavigation be always active?"
+     A1: "Yes"
+     
+     Q2: "Should StaffDetail be always active?"
+     A2: "Yes"
+     
+     Q3: "For first-time users, which tab should be active?"
+     A3: "ShiftTable"
+     ```
+
+2. **Visual State Communication**
+   - Show exact expected states
+   - Use consistent formatting
+   - Include helpful comments
+   - Example:
+     ```
+     Expected Debug View:
+     ▶ StaffDetail (Active)      // Always active
+     ▶ TabNavigation (Active)    // Always active
+     ▶ StaffList (Inactive)      // Inactive by default
+     ▶ ShiftTable (Active)       // Active because default
+     ```
+
+3. **Storage Structure Clarity**
+   - Show exact data formats
+   - Comment each field's purpose
+   - Example:
+     ```javascript
+     debug_state_data: {
+       components: {
+         TabNavigation: {
+           activeTab: {
+             value: "ShiftTable",    // Current tab
+             lastUpdated: "<time>"   // When changed
+           }
+         }
+       }
+     }
+     ```
+
+4. **Step-by-Step Testing**
+   - Clear, numbered steps
+   - Expected outcome per step
+   - Example:
+     ```
+     1. Clear storage
+        → All data removed
+     
+     2. Refresh page
+        → ShiftTable active
+        → StaffList inactive
+     ```
+
+5. **Error Prevention**
+   - Show what's wrong
+   - Show what's right
+   - Example:
+     ```
+     ❌ All active:
+     ▶ All components (Active)    // Wrong
+     
+     ✅ Correct state:
+     ▶ ShiftTable (Active)        // Right
+     ▶ StaffList (Inactive)       // Right
+     ```
+
+### Bug Resolution Strategy
+1. **Visual Bug Detection**
+   - Show current incorrect state
+   - Show expected correct state
+   - Example:
+     ```
+     Bug Found:
+     ▶ StaffDetail (Active)
+     ▶ TabNavigation (Active)
+     ▶ StaffList (Active)      // Wrong!
+     ▶ ShiftTable (Active)     // Wrong!
+     
+     Should Be:
+     ▶ StaffDetail (Active)
+     ▶ TabNavigation (Active)
+     ▶ StaffList (Inactive)    // Correct
+     ▶ ShiftTable (Active)     // Correct
+     ```
+
+2. **Root Cause Analysis**
+   - Check initialization code:
+     ```javascript
+     // Bug source found:
+     const isActive = debugVariables?.TabNavigation?.activeComponents?.value?.[componentName] ?? true;
+     // Default to true caused all components to be active
+     
+     // Fixed by:
+     const isActive = React.useMemo(() => {
+       if (componentName === 'TabNavigation' || componentName === 'StaffDetail') {
+         return true;
+       }
+       const activeComponents = debugVariables?.TabNavigation?.activeComponents?.value;
+       return activeComponents ? activeComponents[componentName] : false;
+     }, [componentName, debugVariables]);
+     ```
+
+3. **Fix Verification Steps**
+   ```
+   1. Clear localStorage
+      → Removes all stored states
+   
+   2. Refresh page
+      → ShiftTable should be active
+      → StaffList should be inactive
+   
+   3. Switch tabs
+      → States should update correctly
+      → Only one content tab active at a time
+   ```
+
+4. **Bug Prevention Patterns**
+   - Default to inactive instead of active
+   - Explicitly define always-active components
+   - Use TypeScript-like nullish checks
+   - Example:
+     ```javascript
+     // Instead of:
+     value ?? true  // Dangerous default
+     
+     // Better:
+     value ?? false // Safe default
+     ```
+
+5. **Documentation Updates**
+   - Added explicit active state rules
+   - Documented component dependencies
+   - Created test scenarios
+   - Example:
+     ```
+     Active State Rules:
+     1. TabNavigation: Always active
+     2. StaffDetail: Always active
+     3. Content tabs (ShiftTable, StaffList):
+        - Only one active at a time
+        - Default to ShiftTable for new users
+     ```
+
+6. **Storage Initialization**
+   - Added proper initial state
+   - Set correct default values
+   - Example:
+     ```javascript
+     DEBUG_STATE_STRUCTURE = {
+       components: {
+         TabNavigation: {
+           activeComponents: {
+             value: {
+               ShiftTable: true,     // Default tab
+               StaffList: false,     // Inactive
+               TabNavigation: true,  // Always
+               StaffDetail: true     // Always
+             }
+           }
+         }
+       }
+     }
+     ```
+
+7. **Testing Edge Cases**
+   - First-time user scenario
+   - Returning user scenario
+   - Tab switching
+   - Page refresh
+   - Example:
+     ```
+     Edge Cases Tested:
+     ✓ New user sees ShiftTable active
+     ✓ Returning user sees last active tab
+     ✓ Active states persist after refresh
+     ✓ Only one content tab active at once
+     ```
+
+### Latest Implementation (2025-01-28 06:40 UTC)
+1. **Debug View Improvements**
+   - Modified Debug View to always show all valid components
+   - Components remain visible regardless of their active state
+   - Maintained 50% opacity for inactive components while preserving debug variable visibility
+   - Ensured TabNavigation and StaffDetail remain consistently active
+   - Implemented semantic tab names (ShiftTable, StaffList) replacing generic Tab 1/Tab 2
+   - Added first-time user detection and default tab handling
+   - Maintained instant state changes for better user experience
+   - Preserved natural component ordering based on update sequence
+   - Enhanced debug variable visibility across all components
+   - Maintained real-time updates for both active and inactive components
+   - Added timestamps for all state changes
+   - Preserved debug information during tab switches
+   - Implemented clear active/inactive state indicators
+   - Maintained centralized state management through TabNavigation
+   - Added proper state persistence for returning users
+   - Enhanced first-time user experience
+
+2. **Add Button Visibility Enhancement**
    - Implemented dynamic Add button visibility in StaffList
    - Button now only appears when user starts typing in name field
    - Maintains existing validation (letters and spaces only)
    - Fixed button counting in debug view to accurately track visible buttons
 
-2. **Debug View Improvements**
+3. **Debug View Improvements**
    - Fixed button counting logic to properly track Add/Remove buttons
    - Changed from using `rowStaffIDs` to using `rows` array for accurate counting
    - Debug view now correctly shows:

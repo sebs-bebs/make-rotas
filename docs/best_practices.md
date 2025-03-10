@@ -273,3 +273,248 @@ These placeholders are intentionally designed to:
 - Provide real-world examples (e.g., Bar Tender for role)
 - Keep it simple but informative
 - Help users understand what information goes where without needing additional labels
+
+## Best Practices for Make-Rotas Development
+
+## Component State Management
+
+### 1. Decision Making Process
+- Break down complex changes into smaller, manageable steps
+- Document all possible states and behaviors before implementation
+- Consider edge cases (first-time users, returning users)
+- Validate decisions through clear examples and scenarios
+
+Example:
+```javascript
+// Good: Clear state initialization with edge cases
+const [state, setState] = useState(() => {
+  const isFirstVisit = !localStorage.getItem('hasVisited');
+  if (isFirstVisit) {
+    // Handle first-time user
+    return defaultValue;
+  }
+  // Handle returning user
+  return savedValue || defaultValue;
+});
+```
+
+### 2. Debug-First Development
+- Always consider debug visibility when making changes
+- Document component states with clear examples
+- Show all relevant information, even for inactive states
+- Use semantic naming for better clarity
+
+Example of debug state documentation:
+```javascript
+// Document all possible states
+/*
+Component States:
+1. First-time User:
+   ▶ ComponentA (Active)
+   ▶ ComponentB (Inactive)
+
+2. Returning User:
+   ▶ ComponentA (Based on last state)
+   ▶ ComponentB (Based on last state)
+*/
+```
+
+### 3. State Transitions
+- Document the flow of state changes
+- Consider the order of operations
+- Maintain predictable behavior
+- Keep state changes atomic and traceable
+
+### 4. Documentation Patterns
+- Use clear, hierarchical structure
+- Include examples for all states
+- Document both current and expected behaviors
+- Use visual representations when helpful
+
+Example documentation structure:
+```markdown
+## Feature Name
+1. Current Behavior
+   - State A → State B
+   - Edge cases
+   
+2. Expected Behavior
+   - Clear examples
+   - State transitions
+   
+3. Technical Implementation
+   - Key changes
+   - State management
+   - Debug visibility
+```
+
+### 5. Code Organization
+- Keep related functionality together
+- Use semantic names over generic ones
+- Document state management decisions
+- Include examples in comments for complex logic
+
+### 6. Testing Considerations
+- Document test scenarios
+- Include edge cases
+- Verify debug visibility
+- Test state persistence
+
+### 7. Debug View Best Practices
+- Always show all valid components
+- Maintain visibility of inactive states
+- Use clear active/inactive indicators
+- Include timestamps for state changes
+- Preserve debug information across sessions
+
+### 8. State Persistence
+- Document storage structure
+- Handle version changes
+- Consider storage limits
+- Implement proper fallbacks
+
+### 9. Component Communication
+- Document data flow
+- Show state dependencies
+- Maintain clear hierarchy
+- Use consistent patterns
+
+### 10. Error Handling
+- Document error states
+- Show debug information
+- Maintain user experience
+- Provide clear feedback
+
+## Testing Communication Best Practices
+
+### 1. Clear Step-by-Step Instructions
+- Break down complex tests into simple steps
+- Number each step sequentially
+- Use clear action verbs (Click, Check, Verify)
+- Specify exact locations and elements
+
+Example:
+```
+1. Open DevTools (F12)
+2. Go to Application > Local Storage
+3. Clear all storage
+4. Refresh the page
+```
+
+### 2. Expected State Visualization
+- Show exact expected output
+- Use consistent formatting
+- Include comments for clarity
+- Show relationships between items
+
+Example:
+```
+Expected Debug View:
+▶ ComponentA (Active)      // Always active
+▶ ComponentB (Inactive)    // Inactive by default
+```
+
+### 3. Data Structure Examples
+- Show exact data formats
+- Include all relevant fields
+- Add timestamps where applicable
+- Comment important values
+
+Example:
+```javascript
+debug_state_data: {
+  components: {
+    ComponentName: {
+      value: "expectedValue",    // What this should be
+      lastUpdated: "<time>",     // When this updates
+      type: "string"             // Expected type
+    }
+  }
+}
+```
+
+### 4. Verification Checkpoints
+- Break verification into small chunks
+- Make each check specific
+- Provide clear pass/fail criteria
+- List dependencies between checks
+
+Example:
+```
+Verify:
+1. Initial state is correct
+   - Component A is active
+   - Component B is inactive
+   
+2. Storage is updated
+   - New values are saved
+   - Timestamps are current
+```
+
+### 5. Error State Examples
+- Show what errors look like
+- Explain why they occur
+- Provide fix steps
+- Show corrected state
+
+Example:
+```
+Common Issue:
+▶ All components show active    // Incorrect
+▶ No components show active     // Also incorrect
+
+Should be:
+▶ ComponentA (Active)          // Correct
+▶ ComponentB (Inactive)        // Correct
+```
+
+### 6. Progressive Testing
+- Start with basic scenarios
+- Build up to complex cases
+- Show state changes clearly
+- Maintain context between steps
+
+Example:
+```
+1. Basic Test:
+   - Check initial state
+   - Verify single change
+
+2. Advanced Test:
+   - Multiple state changes
+   - Refresh persistence
+   - Error recovery
+```
+
+### 7. Visual Formatting
+- Use consistent symbols (▶, →)
+- Indent related items
+- Add spacing for readability
+- Highlight important parts
+
+Example:
+```
+Component Structure:
+▶ Parent
+  → Child 1
+  → Child 2
+    • Property A
+    • Property B
+```
+
+### 8. Context Preservation
+- Show before and after states
+- Explain state transitions
+- Keep track of dependencies
+- Document side effects
+
+Example:
+```
+Before Action:
+▶ ComponentA (Active)
+▶ ComponentB (Inactive)
+
+After Click:
+▶ ComponentA (Inactive)   // Changed
+▶ ComponentB (Active)     // Changed
+```

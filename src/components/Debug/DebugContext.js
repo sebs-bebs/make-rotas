@@ -1,10 +1,20 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { initializeDebugStorage, saveDebugState, loadAllDebugState } from '../../utils/debugStorage';
 
 const DebugContext = createContext();
 
 export const DebugProvider = ({ children }) => {
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [debugVariables, setDebugVariables] = useState({});
+
+  // Initialize debug storage on first load
+  useEffect(() => {
+    initializeDebugStorage();
+    const savedState = loadAllDebugState();
+    if (savedState?.components) {
+      setDebugVariables(savedState.components);
+    }
+  }, []);
 
   const toggleDebug = () => setIsDebugVisible(prev => !prev);
   
@@ -31,11 +41,14 @@ export const DebugProvider = ({ children }) => {
       // Create new object without mutating previous state
       const nextState = { ...prev };
       
+      // Update components and save to storage
       Object.entries(newVariables).forEach(([componentName, componentVars]) => {
         nextState[componentName] = {
           ...nextState[componentName],
           ...componentVars
         };
+        // Save each component's state separately
+        saveDebugState(componentName, nextState[componentName]);
       });
 
       return nextState;

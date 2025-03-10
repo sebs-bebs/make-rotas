@@ -5,11 +5,12 @@ import logo from './logo.svg';
 import './App.css';
 import Navbar from './components/Navbar';
 import TabNavigation from './components/TabNavigation';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { DebugProvider, DebugDisplay } from './components/Debug';
 import { DateProvider } from './context/DateContext';
 import { StaffProvider } from './context/StaffContext';
 import { StaffDetailProvider } from './context/StaffDetailContext';
+import TestingPage from './components/TestingPage';
 
 // This is our main App component - it's like the container that holds everything else
 function App() {
@@ -27,8 +28,10 @@ function App() {
                 <Navbar />
                 {/* Main content area with some spacing around it */}
                 <main className="container mx-auto px-4 py-8">
-                  {/* Tab system for organizing different sections */}
-                  <TabNavigation />
+                  <Routes>
+                    <Route path="/testing" element={<TestingPage />} />
+                    <Route path="*" element={<TabNavigation />} />
+                  </Routes>
                 </main>
                 {/* Shows helpful information about what's happening in the app */}
                 <DebugDisplay />

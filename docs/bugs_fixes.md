@@ -647,9 +647,9 @@ className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition
 - Created potential maintenance overhead
 
 ### Resolution Steps
-1. Removed all styling classes
-2. Kept only essential functionality (onClick handler)
-3. Simplified component to basic button element
+1. Remove all styling classes
+2. Keep only essential functionality (onClick handler)
+3. Simplify component to basic button element
 
 ### Prevention
 - Only add styling when explicitly requested
@@ -1029,3 +1029,117 @@ The Debug View is like a special window that shows us what's happening inside ou
    - Add ShiftTable back to our "allowed list"
    - Keep all the important information visible
    - Remove only the unwanted numbered sections
+
+## Figma Design Integration - Server Connection Error
+**Date:** 2025-03-03
+**Component:** FigmaDesign.js
+
+### Issue Description
+The Figma design integration was failing with a "Failed to fetch" error when the Figma MCP server was not running. This created a poor user experience as the component would display an error message instead of gracefully handling the missing server.
+
+### Root Cause
+- The component was designed with the assumption that the Figma MCP server would always be running
+- It attempted to fetch design data on component mount without properly checking server availability
+- The error handling was focused on API errors rather than connection errors
+- The component didn't have a proper fallback mechanism for when the server was unavailable
+
+```jsx
+// Previous implementation with poor error handling
+useEffect(() => {
+  const fetchDesignData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchFigmaNode(fileKey, nodeId);
+      setDesignData(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching Figma design:', err);
+      setError(err);
+      setLoading(false);
+    }
+  };
+
+  fetchDesignData();
+}, []);
+```
+
+### Solution
+1. Added server status checking before attempting to fetch design data
+2. Changed the default loading state to `false` to prevent unnecessary loading indicators
+3. Updated the error UI to be more user-friendly with a yellow warning instead of a red error
+4. Implemented a comprehensive fallback design that displays when the server is unavailable
+5. Added clear documentation about the optional nature of the Figma MCP server
+
+```jsx
+// Improved implementation with server status check and fallback
+const [serverStatus, setServerStatus] = useState('not-running'); // Default to not-running
+
+// Check if the Figma MCP server is running
+useEffect(() => {
+  const checkServerStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:3333/');
+      if (response.ok) {
+        setServerStatus('running');
+      } else {
+        setServerStatus('error');
+      }
+    } catch (err) {
+      console.error('Error checking Figma MCP server status:', err);
+      setServerStatus('not-running');
+    }
+  };
+
+  checkServerStatus();
+}, []);
+
+// Only fetch design data if server is running
+useEffect(() => {
+  const fetchDesignData = async () => {
+    if (serverStatus !== 'running') {
+      return; // Don't try to fetch if server isn't running
+    }
+    
+    // Fetch logic here...
+  };
+
+  fetchDesignData();
+}, [serverStatus]);
+```
+
+### User Experience Improvements
+1. **Clear Status Indication:**
+   - Yellow warning message when server is not running
+   - Informative text explaining the situation
+   - No technical jargon or error codes
+
+2. **Fallback Design:**
+   - Implemented a visually appealing fallback design
+   - Maintains the same general layout and functionality
+   - Clearly indicates it's a sample/fallback design
+
+3. **Debug Integration:**
+   - Added server status to debug variables
+   - Maintained all existing debug information
+   - Added more context to error messages
+
+### Documentation Updates
+1. Updated feature.md to clarify that the Figma MCP server is optional
+2. Created figma_mcp_setup.md with detailed setup instructions
+3. Updated component comments to explain the fallback mechanism
+
+### Lessons Learned
+1. **Graceful Degradation:**
+   - Always implement fallback mechanisms for external dependencies
+   - Design components to work without optional services
+   - Provide clear user feedback when services are unavailable
+
+2. **Error Handling:**
+   - Distinguish between different types of errors (connection vs. API)
+   - Use appropriate visual indicators for different error severities
+   - Provide helpful context and next steps in error messages
+
+3. **Documentation:**
+   - Clearly document optional dependencies
+   - Provide setup instructions for external services
+   - Explain fallback behaviors

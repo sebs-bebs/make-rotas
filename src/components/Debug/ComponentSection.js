@@ -4,8 +4,17 @@ import { useDebug } from './DebugContext';
 const ComponentSection = ({ componentName, variables, isOpen, onToggle }) => {
   const { debugVariables } = useDebug();
   
-  // Check if component is active based on TabNavigation's activeComponents
-  const isActive = debugVariables?.TabNavigation?.activeComponents?.value?.[componentName] ?? true;
+  // Determine if component is active based on specific rules
+  const isActive = React.useMemo(() => {
+    // TabNavigation and StaffDetail are always active
+    if (componentName === 'TabNavigation' || componentName === 'StaffDetail') {
+      return true;
+    }
+
+    // For other components, check TabNavigation's activeComponents
+    const activeComponents = debugVariables?.TabNavigation?.activeComponents?.value;
+    return activeComponents ? activeComponents[componentName] : false;
+  }, [componentName, debugVariables?.TabNavigation?.activeComponents?.value]);
 
   // Only show component sections that we explicitly want to track
   const validComponents = ['StaffDetail', 'TabNavigation', 'StaffList', 'ShiftTable'];

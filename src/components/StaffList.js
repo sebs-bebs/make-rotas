@@ -545,7 +545,7 @@ function StaffList() {
                         </button>
                       )}
                       <RemoveButton 
-                        onClick={() => handleRemoveClick(rowIndex)} 
+                        onRemove={() => handleRemoveClick(rowIndex)} 
                         disabled={isDisabled}
                       />
                     </>
