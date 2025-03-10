@@ -50,15 +50,15 @@ The Make Rotas application includes a Figma design integration that can fetch an
 ## Configuration
 
 ### Figma API Key
-To use the Figma MCP server, you need a valid Figma API key. The current implementation uses:
+To use the Figma MCP server, you need a valid Figma API key. You can obtain one from your Figma account settings.
 ```
-figd_3SNX-Nu660S1jWkH55zIML7A_-TwqOCAis7mEFBd
+YOUR_FIGMA_API_KEY_HERE
 ```
 
 ### File and Node Information
 The current implementation uses:
-- File Key: `7apOTuphy19e0zDBAryViy`
-- Node ID: `202-111`
+- File Key: `YOUR_FIGMA_FILE_KEY`
+- Node ID: `YOUR_NODE_ID`
 
 You can modify these values in the `FigmaDesign.js` component to fetch different designs.
 
