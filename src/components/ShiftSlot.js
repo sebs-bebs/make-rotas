@@ -5,6 +5,7 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange }) {
   const { updateDebugVariables } = useDebug();
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [weekStartDate, setWeekStartDate] = useState('');
   
   // Generate time options in 15-minute increments
   const timeOptions = [];
@@ -48,24 +49,10 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange }) {
       setEndTime('');
     }
     
-    // Update debug and parent component
+    // Update parent component only
     if (onShiftChange) {
       onShiftChange(staffName, day, newStartTime, endTime);
     }
-    
-    updateDebugVariables({
-      ShiftTable: {
-        [`${staffName}_${day}_shift`]: {
-          value: {
-            startTime: newStartTime,
-            endTime,
-            duration: calculateDuration()
-          },
-          lastUpdated: new Date().toLocaleTimeString(),
-          type: "object"
-        }
-      }
-    });
   };
   
   // Handle end time change
@@ -73,25 +60,54 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange }) {
     const newEndTime = e.target.value;
     setEndTime(newEndTime);
     
-    // Update debug and parent component
+    // Update parent component only
     if (onShiftChange) {
       onShiftChange(staffName, day, startTime, newEndTime);
     }
+  };
+  
+  // Load saved shift data when component mounts or when staff/day changes
+  useEffect(() => {
+    // Get all shift data from localStorage
+    const savedShiftData = JSON.parse(localStorage.getItem('shiftData') || '{}');
     
-    updateDebugVariables({
-      ShiftTable: {
-        [`${staffName}_${day}_shift`]: {
-          value: {
-            startTime,
-            endTime: newEndTime,
-            duration: calculateDuration()
-          },
-          lastUpdated: new Date().toLocaleTimeString(),
-          type: "object"
+    // Get the current week's Monday date - we need to check the header cells to find this
+    // First get all rows from localStorage
+    const savedRows = JSON.parse(localStorage.getItem('shiftTableRows') || '[]');
+    
+    // Find the header row (first row)
+    const headerRow = savedRows.find(row => row.id === 'row-1');
+    
+    if (headerRow && headerRow.cells && headerRow.cells.length > 1) {
+      // Parse the Monday cell which has format "Monday\n2025-03-10"
+      const mondayCell = headerRow.cells[1];
+      if (mondayCell) {
+        const datePart = mondayCell.split('\n')[1];
+        if (datePart) {
+          setWeekStartDate(datePart);
+          
+          // Now try to find the shift with the week-specific key first
+          const weekSpecificKey = `${staffName}_${day}_${datePart}`;
+          const weekSpecificShift = savedShiftData[weekSpecificKey];
+          
+          if (weekSpecificShift && weekSpecificShift.startTime && weekSpecificShift.endTime) {
+            setStartTime(weekSpecificShift.startTime);
+            setEndTime(weekSpecificShift.endTime);
+            return;
+          }
         }
       }
-    });
-  };
+    }
+    
+    // If we couldn't find week-specific data, try the legacy format
+    const legacyKey = `${staffName}_${day}`;
+    const legacyShift = savedShiftData[legacyKey];
+    
+    if (legacyShift && legacyShift.startTime && legacyShift.endTime) {
+      setStartTime(legacyShift.startTime);
+      setEndTime(legacyShift.endTime);
+    }
+  }, [staffName, day]);
   
   return (
     <div className="flex flex-col space-y-1">

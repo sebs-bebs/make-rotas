@@ -179,12 +179,18 @@ function ShiftTable() {
     }
   }, [notification]);
 
-  // Update first row with weekDays information
+  // Filter rows by week when week changes and update header row
   useEffect(() => {
-    setRows(currentRows => {
-      // Only update the header row, keep all other rows the same
-      const updatedRows = [...currentRows];
-      updatedRows[0] = {
+    // Get current week's Monday date
+    const currentWeekMonday = currentWeekState.dates[0];
+    
+    // Get all saved rows
+    const allSavedRows = JSON.parse(localStorage.getItem('shiftTableRows') || '[]');
+    
+    // Filter rows to only include staff for the current week
+    setRows(() => {
+      // Create the header row with updated week information
+      const headerRow = {
         id: 'row-1',
         cells: [
           'STAFF',
@@ -195,11 +201,29 @@ function ShiftTable() {
           `${weekDays.friday.dayName}\n${weekDays.friday.date}`,
           `${weekDays.saturday.dayName}\n${weekDays.saturday.date}`,
           `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
-        ]
+        ],
+        weekStartDate: currentWeekMonday
       };
-      return updatedRows;
+      
+      // Add staff row for adding new staff
+      const addStaffRow = {
+        id: 'row-2',
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')],
+        weekStartDate: currentWeekMonday
+      };
+      
+      // Filter staff rows to only include those for the current week
+      const filteredStaffRows = allSavedRows.filter(row => {
+        // Skip header and add staff rows 
+        if (row.id === 'row-1' || row.id === 'row-2') return false;
+        
+        // Include only staff rows associated with the current week
+        return row.weekStartDate === currentWeekMonday;
+      });
+      
+      return [headerRow, ...filteredStaffRows, addStaffRow];
     });
-  }, [weekDays]);
+  }, [weekDays, currentWeekState.dates, numColumns]);
 
   // Handle opening the staff selector
   const handleAddStaffClick = useCallback(() => {
@@ -221,6 +245,9 @@ function ShiftTable() {
   const handleAddStaff = useCallback((staffToAdd) => {
     if (!staffToAdd || staffToAdd.length === 0) return;
     
+    // Get current week's Monday date for tracking
+    const currentWeekMonday = currentWeekState.dates[0];
+    
     // Add new rows for each selected staff
     setRows(currentRows => {
       const newRows = [...currentRows];
@@ -230,23 +257,29 @@ function ShiftTable() {
       
       // Add new staff rows
       staffToAdd.forEach(staff => {
-        const newRowId = `row-${Date.now()}-${staff.id}`;
+        // Create a week-specific row ID that includes the week start date
+        const newRowId = `row-${Date.now()}-${staff.id}-${currentWeekMonday}`;
         contentRows.push({
           id: newRowId,
-          cells: [staff.name, ...Array(numColumns - 1).fill('')]
+          cells: [staff.name, ...Array(numColumns - 1).fill('')],
+          weekStartDate: currentWeekMonday // Store the week info directly in the row
         });
         
-        // Update staff IDs tracking
+        // Update staff IDs tracking with week information
         setRowStaffIDs(prev => ({
           ...prev,
-          [newRowId]: staff.id
+          [newRowId]: {
+            staffId: staff.id,
+            weekStartDate: currentWeekMonday
+          }
         }));
       });
       
       // Add the Add Staff row back at the end
       contentRows.push({
         id: 'row-2',
-        cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')],
+        weekStartDate: currentWeekMonday
       });
       
       return contentRows;
@@ -295,6 +328,18 @@ function ShiftTable() {
       const newRowStaffIDs = { ...prev };
       delete newRowStaffIDs[rowId];
       return newRowStaffIDs;
+    });
+    
+    // Remove all shift data for this staff member
+    setShiftData(prev => {
+      const newShiftData = { ...prev };
+      // Delete all entries that start with staffName_
+      Object.keys(newShiftData).forEach(key => {
+        if (key.startsWith(`${staffName}_`)) {
+          delete newShiftData[key];
+        }
+      });
+      return newShiftData;
     });
 
     // Show notification
@@ -353,53 +398,98 @@ function ShiftTable() {
 
   // Handle shift time changes
   const handleShiftChange = useCallback((staffName, day, startTime, endTime) => {
-    // Update shift data
+    // Get current week's Monday date as an identifier
+    const weekStartDate = currentWeekState.dates[0]; // Monday's date in YYYY-MM-DD format
+    
+    // Update shift data with week information
     setShiftData(prev => ({
       ...prev,
-      [`${staffName}_${day}`]: {
+      [`${staffName}_${day}_${weekStartDate}`]: {
         startTime,
         endTime,
+        weekStartDate, // Store the week this shift belongs to
+        dayDate: weekDays[day.toLowerCase()]?.date || '', // Store the specific date
         lastUpdated: new Date().toISOString()
       }
     }));
+  }, [currentWeekState.dates, weekDays]);
+  
+  // Find and display the saved shift information for a specific cell
+  const getShiftForCell = useCallback((staffName, day) => {
+    // Get current week's Monday date
+    const weekStartDate = currentWeekState.dates[0];
     
-    // Calculate duration if both times are set
-    if (startTime && endTime) {
-      const [startHour, startMinute] = startTime.split(':').map(Number);
-      const [endHour, endMinute] = endTime.split(':').map(Number);
+    // Look for shifts only in the current week
+    const weekSpecificKey = `${staffName}_${day}_${weekStartDate}`;
+    return shiftData?.[weekSpecificKey] || {};
+  }, [shiftData, currentWeekState.dates]);
+
+  // Format shift data for the debug view to avoid duplication
+  const formatShiftDataForDebug = useCallback(() => {
+    // Create a hierarchical structure grouped by staff, week, and day
+    const staffShifts = {};
+    
+    // Process the shift data from the flattened structure to a hierarchical one
+    Object.entries(shiftData || {}).forEach(([key, data]) => {
+      // Parse the key which now includes weekStartDate: staffName_day_weekStartDate
+      const keyParts = key.split('_');
+      
+      // Skip if not enough parts
+      if (keyParts.length < 2) return;
+      
+      let staffName, day, weekStartDate;
+      
+      if (keyParts.length >= 3) {
+        // New format: staffName_day_weekStartDate
+        weekStartDate = keyParts[keyParts.length - 1];
+        day = keyParts[keyParts.length - 2];
+        staffName = keyParts.slice(0, keyParts.length - 2).join('_');
+      } else {
+        // Legacy format: staffName_day
+        [staffName, day] = keyParts;
+        weekStartDate = 'unknown';
+      }
+      
+      // Skip if we don't have enough information
+      if (!staffName || !day || !data.startTime || !data.endTime) return;
+      
+      // Initialize staff object if needed
+      if (!staffShifts[staffName]) {
+        staffShifts[staffName] = {};
+      }
+      
+      // Group by day but use the week information for unique identification
+      const dayKey = `${day}_${data.weekStartDate || weekStartDate || 'unknown'}`;
+      
+      const [startHour, startMinute] = data.startTime.split(':').map(Number);
+      const [endHour, endMinute] = data.endTime.split(':').map(Number);
       
       const startTotalMinutes = startHour * 60 + startMinute;
       const endTotalMinutes = endHour * 60 + endMinute;
       
       const durationMinutes = endTotalMinutes - startTotalMinutes;
       const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
       
-      // Track in debug
-      updateDebugVariables({
-        ShiftTable: {
-          staffShifts: {
-            value: {
-              ...(debugVariables?.ShiftTable?.staffShifts?.value || {}),
-              [staffName]: {
-                ...(debugVariables?.ShiftTable?.staffShifts?.value?.[staffName] || {}),
-                [day]: {
-                  startTime,
-                  endTime,
-                  duration: `${hours} ${hours === 1 ? 'hour' : 'hours'}`
-                }
-              }
-            },
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "object",
-            description: "Staff shift schedules"
-          }
-        }
-      });
-    }
-  }, [updateDebugVariables, debugVariables?.ShiftTable?.staffShifts?.value]);
+      // Use the stored dayDate instead of current week's date
+      staffShifts[staffName][dayKey] = {
+        startTime: data.startTime,
+        endTime: data.endTime,
+        duration: `${hours}:${minutes.toString().padStart(2, '0')}`,
+        hoursWorked: hours + (minutes / 60),
+        dayOfWeek: day,
+        date: data.dayDate || 'unknown',
+        weekStartDate: data.weekStartDate || weekStartDate || 'unknown'
+      };
+    });
+    
+    return staffShifts;
+  }, [shiftData]);
 
   // Update debug variables
   useEffect(() => {
+    const formattedShiftData = formatShiftDataForDebug();
+    
     updateDebugVariables({
       ShiftTable: {
         today: {
@@ -452,10 +542,11 @@ function ShiftTable() {
           lastUpdated: new Date().toLocaleTimeString(),
           type: "string"
         },
-        shiftData: {
-          value: shiftData,
+        staffShifts: {
+          value: formattedShiftData,
           lastUpdated: new Date().toLocaleTimeString(),
-          type: "object"
+          type: "object",
+          description: "Staff shift schedules organized by staff member and day"
         }
       }
     });
@@ -473,7 +564,7 @@ function ShiftTable() {
     rowStaffIDs,
     currentStaffIds,
     notification,
-    shiftData
+    formatShiftDataForDebug
   ]);
 
   return (
