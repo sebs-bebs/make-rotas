@@ -2,13 +2,25 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDebug } from './Debug/DebugContext';
 import { useDate } from '../context/DateContext';
+import { useStaffDetail } from '../context/StaffDetailContext';
+import AddStaffButton from './AddStaffButton';
+import StaffSelector from './StaffSelector';
+import RemoveButton from './RemoveButton';
+import ShiftSlot from './ShiftSlot';
 
 function ShiftTable() {
   const { currentDate, getCurrentMonday, getMondayOfWeek, getWeekDates, currentWeek } = useDate();
-  const { updateDebugVariables } = useDebug();
+  const { updateDebugVariables, debugVariables } = useDebug();
+  const { getStaffMember } = useStaffDetail();
 
   // Track week offset from current week
   const [weekOffset, setWeekOffset] = useState(0);
+  
+  // State for staff selector popup
+  const [isStaffSelectorOpen, setIsStaffSelectorOpen] = useState(false);
+  
+  // State for notification
+  const [notification, setNotification] = useState(null);
 
   // Initialize current week state
   const [currentWeekState, setCurrentWeek] = useState(() => {
@@ -106,22 +118,73 @@ function ShiftTable() {
   const numRows = 2;
   const numColumns = 8;
 
-  // Initialize rows state
-  const [rows, setRows] = useState(() => [
-    {
-      id: 'row-1',
-      cells: ['STAFF', ...Array(numColumns - 1).fill('')]
-    },
-    {
-      id: 'row-2',
-      cells: ['C1R2', ...Array(numColumns - 1).fill('')]
+  // Initialize rows state with local storage data if available
+  const [rows, setRows] = useState(() => {
+    const savedRows = localStorage.getItem('shiftTableRows');
+    if (savedRows) {
+      try {
+        return JSON.parse(savedRows);
+      } catch (error) {
+        console.error('Error parsing rows from localStorage:', error);
+      }
     }
-  ]);
+    
+    return [
+      {
+        id: 'row-1',
+        cells: ['STAFF', ...Array(numColumns - 1).fill('')]
+      },
+      {
+        id: 'row-2',
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
+      }
+    ];
+  });
+
+  // Keep track of staff IDs in rows for filtering available staff
+  const [rowStaffIDs, setRowStaffIDs] = useState(() => {
+    const savedIDs = localStorage.getItem('shiftTableStaffIDs');
+    return savedIDs ? JSON.parse(savedIDs) : {};
+  });
+
+  // Track shift data for each staff member
+  const [shiftData, setShiftData] = useState(() => {
+    const savedShiftData = localStorage.getItem('shiftTableShiftData');
+    return savedShiftData ? JSON.parse(savedShiftData) : {};
+  });
+
+  // Save rows to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('shiftTableRows', JSON.stringify(rows));
+  }, [rows]);
+
+  // Save staff IDs to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('shiftTableStaffIDs', JSON.stringify(rowStaffIDs));
+  }, [rowStaffIDs]);
+
+  // Save shift data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
+  }, [shiftData]);
+
+  // Clear notification after timeout
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000); // 3 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // Update first row with weekDays information
   useEffect(() => {
-    setRows(currentRows => [
-      {
+    setRows(currentRows => {
+      // Only update the header row, keep all other rows the same
+      const updatedRows = [...currentRows];
+      updatedRows[0] = {
         id: 'row-1',
         cells: [
           'STAFF',
@@ -133,10 +196,126 @@ function ShiftTable() {
           `${weekDays.saturday.dayName}\n${weekDays.saturday.date}`,
           `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
         ]
-      },
-      currentRows[1]
-    ]);
+      };
+      return updatedRows;
+    });
   }, [weekDays]);
+
+  // Handle opening the staff selector
+  const handleAddStaffClick = useCallback(() => {
+    setIsStaffSelectorOpen(true);
+    
+    // Track in debug
+    updateDebugVariables({
+      ShiftTable: {
+        addStaffButtonClicked: {
+          value: true,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "boolean"
+        }
+      }
+    });
+  }, [updateDebugVariables]);
+
+  // Handle adding selected staff to the rota
+  const handleAddStaff = useCallback((staffToAdd) => {
+    if (!staffToAdd || staffToAdd.length === 0) return;
+    
+    // Add new rows for each selected staff
+    setRows(currentRows => {
+      const newRows = [...currentRows];
+      
+      // Extract all rows except the Add Staff row (last row)
+      const contentRows = newRows.filter(row => row.id !== 'row-2');
+      
+      // Add new staff rows
+      staffToAdd.forEach(staff => {
+        const newRowId = `row-${Date.now()}-${staff.id}`;
+        contentRows.push({
+          id: newRowId,
+          cells: [staff.name, ...Array(numColumns - 1).fill('')]
+        });
+        
+        // Update staff IDs tracking
+        setRowStaffIDs(prev => ({
+          ...prev,
+          [newRowId]: staff.id
+        }));
+      });
+      
+      // Add the Add Staff row back at the end
+      contentRows.push({
+        id: 'row-2',
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
+      });
+      
+      return contentRows;
+    });
+    
+    // Close the popup
+    setIsStaffSelectorOpen(false);
+    
+    // Show notification
+    setNotification(`${staffToAdd.length} staff added`);
+    
+    // Track in debug
+    updateDebugVariables({
+      ShiftTable: {
+        staffAdded: {
+          value: staffToAdd.map(s => s.name),
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "array"
+        },
+        totalRows: {
+          value: rows.length + staffToAdd.length,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
+        }
+      }
+    });
+  }, [rows.length, numColumns, updateDebugVariables]);
+
+  // Handle removing staff from the rota
+  const handleRemoveStaff = useCallback((rowId) => {
+    // Find the row index
+    const rowIndex = rows.findIndex(row => row.id === rowId);
+    if (rowIndex === -1 || rowId === 'row-1' || rowId === 'row-2') return; // Don't remove header or add staff row
+
+    // Get staff info for debug
+    const staffId = rowStaffIDs[rowId];
+    const staffName = rows[rowIndex].cells[0];
+
+    // Remove row from rows
+    setRows(currentRows => {
+      return currentRows.filter(row => row.id !== rowId);
+    });
+
+    // Remove from staff IDs tracking
+    setRowStaffIDs(prev => {
+      const newRowStaffIDs = { ...prev };
+      delete newRowStaffIDs[rowId];
+      return newRowStaffIDs;
+    });
+
+    // Show notification
+    setNotification(`${staffName} removed from rota`);
+
+    // Track in debug
+    updateDebugVariables({
+      ShiftTable: {
+        staffRemoved: {
+          value: staffName,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "string"
+        },
+        totalRows: {
+          value: rows.length - 1,
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "number"
+        }
+      }
+    });
+  }, [rows, rowStaffIDs, updateDebugVariables]);
 
   // Helper functions to check frozen state
   const isElementFrozen = useCallback((element) => {
@@ -166,6 +345,58 @@ function ShiftTable() {
   const getFrozenColumnCount = useCallback(() => {
     return rows[0]?.cells.reduce((count, _, index) => count + (isColumnFrozen(index) ? 1 : 0), 0) || 0;
   }, [rows, isColumnFrozen]);
+
+  // Get the current staff IDs that are already in the rota
+  const currentStaffIds = useMemo(() => {
+    return Object.values(rowStaffIDs);
+  }, [rowStaffIDs]);
+
+  // Handle shift time changes
+  const handleShiftChange = useCallback((staffName, day, startTime, endTime) => {
+    // Update shift data
+    setShiftData(prev => ({
+      ...prev,
+      [`${staffName}_${day}`]: {
+        startTime,
+        endTime,
+        lastUpdated: new Date().toISOString()
+      }
+    }));
+    
+    // Calculate duration if both times are set
+    if (startTime && endTime) {
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+      
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+      
+      const durationMinutes = endTotalMinutes - startTotalMinutes;
+      const hours = Math.floor(durationMinutes / 60);
+      
+      // Track in debug
+      updateDebugVariables({
+        ShiftTable: {
+          staffShifts: {
+            value: {
+              ...(debugVariables?.ShiftTable?.staffShifts?.value || {}),
+              [staffName]: {
+                ...(debugVariables?.ShiftTable?.staffShifts?.value?.[staffName] || {}),
+                [day]: {
+                  startTime,
+                  endTime,
+                  duration: `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+                }
+              }
+            },
+            lastUpdated: new Date().toLocaleTimeString(),
+            type: "object",
+            description: "Staff shift schedules"
+          }
+        }
+      });
+    }
+  }, [updateDebugVariables, debugVariables?.ShiftTable?.staffShifts?.value]);
 
   // Update debug variables
   useEffect(() => {
@@ -211,35 +442,38 @@ function ShiftTable() {
           lastUpdated: new Date().toLocaleTimeString(),
           type: "number"
         },
-        rows: {
-          value: rows,
+        isOpen: {
+          value: isStaffSelectorOpen,
           lastUpdated: new Date().toLocaleTimeString(),
-          type: "array"
-        }
-      },
-      TabNavigation: {
-        activeTab: {
-          value: "shifts",
+          type: "boolean"
+        },
+        notification: {
+          value: notification,
           lastUpdated: new Date().toLocaleTimeString(),
           type: "string"
         },
-        tabs: {
-          value: ["shifts", "staff", "settings"],
+        shiftData: {
+          value: shiftData,
           lastUpdated: new Date().toLocaleTimeString(),
-          type: "array"
+          type: "object"
         }
       }
     });
   }, [
-    numColumns, 
-    updateDebugVariables, 
-    currentDate, 
-    currentWeekState, 
-    weekOffset, 
-    rows,
+    updateDebugVariables,
+    currentDate,
+    weekOffset,
+    currentWeekState.dates,
+    weekDays,
+    rows.length,
+    numColumns,
     getFrozenRowCount,
     getFrozenColumnCount,
-    weekDays
+    isStaffSelectorOpen,
+    rowStaffIDs,
+    currentStaffIds,
+    notification,
+    shiftData
   ]);
 
   return (
@@ -276,28 +510,71 @@ function ShiftTable() {
                   {row.cells.map((cell, colIndex) => {
                     const isFirstRow = rowIndex === 0;
                     const isFirstCol = colIndex === 0;
+                    const isAddStaffRow = row.id === 'row-2';
                     
                     return (
                       <td
                         key={`${row.id}-cell-${colIndex}`}
                         data-col-index={colIndex}
                         className={`
-                          border p-2 ${isFirstCol ? 'min-w-[6.25rem]' : 'min-w-[100px]'}
+                          border p-2 ${isFirstCol ? 'min-w-[7.5rem]' : 'min-w-[100px]'}
                           ${isFirstRow ? 'sticky top-0 bg-white z-10' : ''}
                           ${isFirstCol ? 'sticky left-0 bg-white z-20' : ''}
                           ${isFirstRow && isFirstCol ? 'z-30' : ''}
                         `}
                       >
-                        {cell}
+                        {isAddStaffRow && colIndex === 0 ? (
+                          <AddStaffButton onClick={handleAddStaffClick} />
+                        ) : isFirstRow || colIndex === 0 ? (
+                          cell
+                        ) : (!isFirstRow && !isAddStaffRow) ? (
+                          <ShiftSlot
+                            staffName={rows[rowIndex].cells[0]}
+                            day={rows[0].cells[colIndex].split('\n')[0]} // Get day name from header
+                            rowId={row.id}
+                            colIndex={colIndex}
+                            onShiftChange={handleShiftChange}
+                          />
+                        ) : (
+                          cell
+                        )}
                       </td>
                     );
                   })}
+                  {/* Actions column with Remove button */}
+                  <td
+                    key={`${row.id}-action`}
+                    className="border p-2 min-w-[100px]"
+                  >
+                    {rowIndex === 0 ? (
+                      'ACTIONS'
+                    ) : row.id === 'row-2' ? (
+                      ''
+                    ) : (
+                      <RemoveButton onRemove={() => handleRemoveStaff(row.id)} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        
+        {/* Notification */}
+        {notification && (
+          <div className="fixed bottom-4 right-4 border px-4 py-2 rounded">
+            {notification}
+          </div>
+        )}
       </div>
+      
+      {/* Staff Selector Popup */}
+      <StaffSelector
+        isOpen={isStaffSelectorOpen}
+        onClose={() => setIsStaffSelectorOpen(false)}
+        onAddStaff={handleAddStaff}
+        currentStaffIds={currentStaffIds}
+      />
     </div>
   );
 }

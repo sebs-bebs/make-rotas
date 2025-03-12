@@ -48,7 +48,7 @@ export function StaffDetailProvider({ children }) {
           // Ensure each staff member has required fields
           const validatedStaffMembers = data.staffMembers.map(staff => ({
             ...staff,
-            inList: true, // Ensure inList is set
+            inList: staff.inList !== undefined ? staff.inList : true, // Preserve inList status instead of forcing true
             state: 'SAVED', // Ensure state is set
             availability: staff.availability || [] // Ensure availability exists
           }));

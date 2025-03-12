@@ -1,6 +1,67 @@
 # Recent Progress and Priorities
 
-## Current Focus (as of 2025-01-28)
+## Current Focus (as of 2025-03-10)
+
+### Staff to Rota Feature Implementation
+1. **Feature Overview**
+   - Implemented ability to add staff to the rota from a filtered list
+   - Added popup interface for staff selection with search functionality
+   - Implemented notification system for confirming staff additions
+   - Created disabled state for Add Staff button when no staff available
+   - Added tooltip for disabled button explaining lack of available staff
+
+2. **Component Implementation**
+   - **AddStaffButton**
+     - Created dedicated button component for adding staff 
+     - Added support for disabled state with debug tracking
+     - Implemented hover tooltip for disabled state
+   
+   - **StaffSelector**
+     - Popup component for staff selection
+     - Filters out staff already in rota
+     - Only shows staff with inList=true
+     - Includes search functionality
+     - Auto-closes after staff selection
+
+   - **ShiftTable**
+     - Integrated StaffSelector component
+     - Implemented staff addition logic
+     - Added notification system
+     - Implemented localStorage persistence
+     - Added logic for tracking available staff
+
+3. **User Experience Improvements**
+   - Temporary notification appears when staff added
+   - Add Staff button automatically disables when no staff available
+   - Hover tooltip explains why button is disabled
+   - Popup auto-closes after staff selection
+   - Staff selector shows only relevant staff
+
+4. **Storage Implementation**
+   ```javascript
+   // Two localStorage keys used:
+   shiftTableRows: [
+     {
+       id: 'row-1',
+       cells: ['STAFF', 'Monday\n2025-03-10', '...']
+     },
+     {
+       id: 'row-12345',
+       cells: ['Staff Name', '', '', '...']
+     }
+   ]
+   
+   shiftTableStaffIDs: {
+     'row-12345': 'staff-123',  // Maps row ID to staff ID
+   }
+   ```
+
+5. **Debug Integration**
+   - All key states and actions tracked in debug system
+   - Popup open/close state tracked
+   - Available staff status tracked
+   - Staff addition events tracked
+   - Button disabled state tracked
 
 ### Implementation Strategy Improvements
 1. **Question-Driven Development**
