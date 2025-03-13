@@ -129,16 +129,20 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
       {/* Show the time chip if both times are selected, otherwise show the dropdowns */}
       {startTime && endTime ? (
         // Simple chip showing time range
-        <div 
-          className="text-xs border rounded p-1 text-center cursor-pointer"
-          onClick={() => {
-            // Reset times to allow re-selection
-            setStartTime('');
-            setEndTime('');
-            onShiftChange(staffName, day, '', '');
-          }}
-        >
-          {startTime} - {endTime}
+        <div className="text-xs border rounded p-1 text-center relative">
+          <span>{startTime} - {endTime}</span>
+          <button 
+            className="absolute right-1 top-1 text-gray-500 hover:text-gray-700" 
+            onClick={() => {
+              // Reset times to allow re-selection
+              setStartTime('');
+              setEndTime('');
+              onShiftChange(staffName, day, '', '');
+            }}
+            aria-label="Clear time selection"
+          >
+            ×
+          </button>
         </div>
       ) : (
         // Show dropdowns when times are not yet selected
