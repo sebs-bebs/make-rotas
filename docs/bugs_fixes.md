@@ -1143,3 +1143,241 @@ useEffect(() => {
    - Clearly document optional dependencies
    - Provide setup instructions for external services
    - Explain fallback behaviors
+
+## ShiftTable - Disappearing Shifts When Changing Weeks
+**Date:** 2025-03-13
+**Component:** ShiftTable.js, ShiftSlot.js
+**Type:** Data Persistence Issue
+
+### Issue Description
+When navigating between weeks in the ShiftTable component, shift data (start times and end times) was disappearing even though it should persist across week changes:
+
+1. **Core Issues**:
+   - Shifts would disappear when switching to a different week and returning
+   - Staff rows were being recreated with new IDs when changing weeks
+   - Shift data was not properly stored and retrieved from localStorage
+
+2. **Contributing Factors**:
+   - Non-stable row IDs led to a disconnect between shift data and displayed slots
+   - ShiftSlot component not properly handling empty/null data
+   - Return of null instead of empty objects in the getShiftForCell function
+   - Missing proper key structure in localStorage for week-specific data
+
+### Root Cause Analysis
+1. **Row ID Instability**:
+   - Row IDs were generated using `Date.now()` creating new IDs every time rows were re-rendered
+   - This prevented ShiftSlots from maintaining a consistent reference to their data
+
+2. **Inconsistent Data Handling**:
+   - The `getShiftForCell` function returned null when no data was found
+   - ShiftSlot component didn't properly handle null data, leading to rendering issues
+
+3. **Lack of Immediate Persistence**:
+   - Shift data wasn't being immediately saved to localStorage
+   - This led to data loss when navigating between weeks
+
+### Solution
+1. **Implement Stable Row IDs**:
+   ```javascript
+   // Before: Using unstable timestamp-based IDs
+   const newRowId = `row-${Date.now()}-${staff.id}`;
+   
+   // After: Creating stable IDs based on staff name
+   const stableRowId = `row-staff-${staff.name.replace(/\s+/g, '-').toLowerCase()}`;
+   ```
+
+2. **Return Empty Objects Instead of Null**:
+   ```javascript
+   // Before: Returning null when no shift data found
+   return null;
+   
+   // After: Returning empty object instead of null
+   return {};
+   ```
+
+3. **Enhance ShiftSlot Data Handling**:
+   ```javascript
+   // Before: Not properly handling null data
+   setStartTime(shiftData?.startTime || '');
+   setEndTime(shiftData?.endTime || '');
+   
+   // After: Explicit conditional handling of data
+   if (shiftData && (shiftData.startTime || shiftData.endTime)) {
+     // We have actual shift data - show it
+     setStartTime(shiftData.startTime || '');
+     setEndTime(shiftData.endTime || '');
+   } else {
+     // No shift data for this cell - clear the times
+     setStartTime('');
+     setEndTime('');
+   }
+   ```
+
+4. **Immediate localStorage Persistence**:
+   ```javascript
+   // Immediately save to localStorage to prevent data loss
+   localStorage.setItem('shiftTableShiftData', JSON.stringify(updatedShiftData));
+   ```
+
+5. **Force Re-rendering When Needed**:
+   ```javascript
+   // Force re-render to ensure data is displayed correctly
+   setRenderKey(prev => prev + 1);
+   ```
+
+### Lessons Learned
+1. **Stable Identifiers**:
+   - Always use stable, content-based IDs for row elements instead of timestamps
+   - Ensure elements that need to maintain state across renders have consistent identifiers
+
+2. **Consistent Data Patterns**:
+   - Return empty objects rather than null for missing data
+   - Handle null, undefined, and empty cases explicitly
+
+3. **Debug-First Approach**:
+   - Include detailed logging to trace data flow
+   - Log the exact keys being used for localStorage operations
+
+4. **Data Persistence Strategy**:
+   - Save to localStorage immediately when data changes
+   - Use explicit keys that include all necessary context (staff, day, week)
+
+### Prevention Strategies
+1. **Code Reviews**:
+   - Check for stable identifiers in list components
+   - Verify proper handling of null/undefined values
+   - Ensure consistent data patterns across components
+
+2. **Testing**:
+   - Test navigation between weeks to ensure data persists
+   - Verify data is correctly saved to and retrieved from localStorage
+   - Check that UI elements correctly display data after state changes
+
+3. **Documentation**:
+   - Document data flow between components
+   - Note critical dependencies and assumptions
+   - Maintain clear localStorage schema documentation
+
+### Related Files
+- `src/components/ShiftTable.js`
+- `src/components/ShiftSlot.js`
+- `src/components/StaffList.js`
+
+## ShiftTable - Disappearing Shifts When Changing Weeks - Documentation
+**Date:** 2025-03-13
+**Component:** ShiftTable.js, ShiftSlot.js
+**Type:** Data Persistence Issue
+
+### Issue Description
+When navigating between weeks in the ShiftTable component, shift data (start times and end times) was disappearing even though it should persist across week changes:
+
+1. **Core Issues**:
+   - Shifts would disappear when switching to a different week and returning
+   - Staff rows were being recreated with new IDs when changing weeks
+   - Shift data was not properly stored and retrieved from localStorage
+
+2. **Contributing Factors**:
+   - Non-stable row IDs led to a disconnect between shift data and displayed slots
+   - ShiftSlot component not properly handling empty/null data
+   - Return of null instead of empty objects in the getShiftForCell function
+   - Missing proper key structure in localStorage for week-specific data
+
+### Root Cause Analysis
+1. **Row ID Instability**:
+   - Row IDs were generated using `Date.now()` creating new IDs every time rows were re-rendered
+   - This prevented ShiftSlots from maintaining a consistent reference to their data
+
+2. **Inconsistent Data Handling**:
+   - The `getShiftForCell` function returned null when no data was found
+   - ShiftSlot component didn't properly handle null data, leading to rendering issues
+
+3. **Lack of Immediate Persistence**:
+   - Shift data wasn't being immediately saved to localStorage
+   - This led to data loss when navigating between weeks
+
+### Solution
+1. **Implement Stable Row IDs**:
+   ```javascript
+   // Before: Using unstable timestamp-based IDs
+   const newRowId = `row-${Date.now()}-${staff.id}`;
+   
+   // After: Creating stable IDs based on staff name
+   const stableRowId = `row-staff-${staff.name.replace(/\s+/g, '-').toLowerCase()}`;
+   ```
+
+2. **Return Empty Objects Instead of Null**:
+   ```javascript
+   // Before: Returning null when no shift data found
+   return null;
+   
+   // After: Returning empty object instead of null
+   return {};
+   ```
+
+3. **Enhance ShiftSlot Data Handling**:
+   ```javascript
+   // Before: Not properly handling null data
+   setStartTime(shiftData?.startTime || '');
+   setEndTime(shiftData?.endTime || '');
+   
+   // After: Explicit conditional handling of data
+   if (shiftData && (shiftData.startTime || shiftData.endTime)) {
+     // We have actual shift data - show it
+     setStartTime(shiftData.startTime || '');
+     setEndTime(shiftData.endTime || '');
+   } else {
+     // No shift data for this cell - clear the times
+     setStartTime('');
+     setEndTime('');
+   }
+   ```
+
+4. **Immediate localStorage Persistence**:
+   ```javascript
+   // Immediately save to localStorage to prevent data loss
+   localStorage.setItem('shiftTableShiftData', JSON.stringify(updatedShiftData));
+   ```
+
+5. **Force Re-rendering When Needed**:
+   ```javascript
+   // Force re-render to ensure data is displayed correctly
+   setRenderKey(prev => prev + 1);
+   ```
+
+### Lessons Learned
+1. **Stable Identifiers**:
+   - Always use stable, content-based IDs for row elements instead of timestamps
+   - Ensure elements that need to maintain state across renders have consistent identifiers
+
+2. **Consistent Data Patterns**:
+   - Return empty objects rather than null for missing data
+   - Handle null, undefined, and empty cases explicitly
+
+3. **Debug-First Approach**:
+   - Include detailed logging to trace data flow
+   - Log the exact keys being used for localStorage operations
+
+4. **Data Persistence Strategy**:
+   - Save to localStorage immediately when data changes
+   - Use explicit keys that include all necessary context (staff, day, week)
+
+### Prevention Strategies
+1. **Code Reviews**:
+   - Check for stable identifiers in list components
+   - Verify proper handling of null/undefined values
+   - Ensure consistent data patterns across components
+
+2. **Testing**:
+   - Test navigation between weeks to ensure data persists
+   - Verify data is correctly saved to and retrieved from localStorage
+   - Check that UI elements correctly display data after state changes
+
+3. **Documentation**:
+   - Document data flow between components
+   - Note critical dependencies and assumptions
+   - Maintain clear localStorage schema documentation
+
+### Related Files
+- `src/components/ShiftTable.js`
+- `src/components/ShiftSlot.js`
+- `src/components/StaffList.js`

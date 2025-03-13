@@ -81,116 +81,23 @@ function ShiftTable() {
     };
   }, [currentWeekState.dates, weekOffset]);
 
-  // Navigate to next/previous week
-  const navigateWeek = useCallback((direction) => {
-    const newOffset = weekOffset + (direction === 'next' ? 1 : -1);
-    setWeekOffset(newOffset);
-    
-    const newMondayDate = getMondayOfWeek(currentDate, newOffset);
-    setCurrentWeek({
-      id: newMondayDate,
-      startDate: new Date(newMondayDate),
-      dates: getWeekDates(newMondayDate)
-    });
-  }, [weekOffset, currentDate, getMondayOfWeek, getWeekDates]);
-
-  // Reset to current week
-  const goToCurrentWeek = useCallback(() => {
-    setWeekOffset(0);
-    const mondayDate = getCurrentMonday();
-    setCurrentWeek({
-      id: mondayDate,
-      startDate: new Date(mondayDate),
-      dates: getWeekDates(mondayDate)
-    });
-  }, [getCurrentMonday, getWeekDates]);
-
-  // Check if a date is today
-  const isCurrentDay = useCallback((date) => {
-    return date === currentDate;
-  }, [currentDate]);
-
-  // Check if a date is in the future
-  const isFutureDate = useCallback((date) => {
-    return new Date(date) > new Date(currentDate);
-  }, [currentDate]);
-
-  const numRows = 2;
-  const numColumns = 8;
-
-  // Initialize rows state with local storage data if available
+  // Track table structure
+  const [numColumns, setNumColumns] = useState(8); // Staff name + 7 days of the week
   const [rows, setRows] = useState(() => {
+    // Check for existing rows in localStorage
     const savedRows = localStorage.getItem('shiftTableRows');
     if (savedRows) {
       try {
         return JSON.parse(savedRows);
-      } catch (error) {
-        console.error('Error parsing rows from localStorage:', error);
+      } catch (e) {
+        console.error('Error parsing saved rows:', e);
       }
     }
     
+    // Default to empty table with header row and add staff button if nothing saved
+    const currentWeekMonday = currentWeekState.dates[0];
     return [
       {
-        id: 'row-1',
-        cells: ['STAFF', ...Array(numColumns - 1).fill('')]
-      },
-      {
-        id: 'row-2',
-        cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
-      }
-    ];
-  });
-
-  // Keep track of staff IDs in rows for filtering available staff
-  const [rowStaffIDs, setRowStaffIDs] = useState(() => {
-    const savedIDs = localStorage.getItem('shiftTableStaffIDs');
-    return savedIDs ? JSON.parse(savedIDs) : {};
-  });
-
-  // Track shift data for each staff member
-  const [shiftData, setShiftData] = useState(() => {
-    const savedShiftData = localStorage.getItem('shiftTableShiftData');
-    return savedShiftData ? JSON.parse(savedShiftData) : {};
-  });
-
-  // Save rows to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('shiftTableRows', JSON.stringify(rows));
-  }, [rows]);
-
-  // Save staff IDs to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('shiftTableStaffIDs', JSON.stringify(rowStaffIDs));
-  }, [rowStaffIDs]);
-
-  // Save shift data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
-  }, [shiftData]);
-
-  // Clear notification after timeout
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => {
-        setNotification(null);
-      }, 3000); // 3 seconds
-      
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
-  // Filter rows by week when week changes and update header row
-  useEffect(() => {
-    // Get current week's Monday date
-    const currentWeekMonday = currentWeekState.dates[0];
-    
-    // Get all saved rows
-    const allSavedRows = JSON.parse(localStorage.getItem('shiftTableRows') || '[]');
-    
-    // Filter rows to only include staff for the current week
-    setRows(() => {
-      // Create the header row with updated week information
-      const headerRow = {
         id: 'row-1',
         cells: [
           'STAFF',
@@ -203,27 +110,239 @@ function ShiftTable() {
           `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
         ],
         weekStartDate: currentWeekMonday
-      };
-      
-      // Add staff row for adding new staff
-      const addStaffRow = {
+      },
+      {
         id: 'row-2',
         cells: ['Add Staff', ...Array(numColumns - 1).fill('')],
         weekStartDate: currentWeekMonday
-      };
-      
-      // Filter staff rows to only include those for the current week
-      const filteredStaffRows = allSavedRows.filter(row => {
-        // Skip header and add staff rows 
-        if (row.id === 'row-1' || row.id === 'row-2') return false;
-        
-        // Include only staff rows associated with the current week
-        return row.weekStartDate === currentWeekMonday;
-      });
-      
-      return [headerRow, ...filteredStaffRows, addStaffRow];
+      }
+    ];
+  });
+  
+  // Keep track of staff IDs for each row
+  const [rowStaffIDs, setRowStaffIDs] = useState(() => {
+    const savedStaffIDs = localStorage.getItem('shiftTableStaffIDs');
+    return savedStaffIDs ? JSON.parse(savedStaffIDs) : {};
+  });
+  
+  // Track shift data for each staff member
+  const [shiftData, setShiftData] = useState(() => {
+    const savedShiftData = localStorage.getItem('shiftTableShiftData');
+    return savedShiftData ? JSON.parse(savedShiftData) : {};
+  });
+  
+  // State for forcing re-render of shift components
+  const [renderKey, setRenderKey] = useState(0);
+
+  // Handle navigation to the previous week
+  const handlePrevWeek = useCallback(() => {
+    // Save current shift data before navigating
+    if (Object.keys(shiftData).length > 0) {
+      console.log('Saving current week shift data before navigating to previous week');
+      localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
+    }
+    
+    // Set the new week offset
+    const newOffset = weekOffset - 1;
+    setWeekOffset(newOffset);
+    
+    // Get the date of the previous week's Monday
+    const prevMondayDate = getMondayOfWeek(currentDate, newOffset);
+    const prevWeekDates = getWeekDates(prevMondayDate);
+    
+    // Update current week state
+    setCurrentWeek({
+      id: prevMondayDate,
+      startDate: new Date(prevMondayDate),
+      dates: prevWeekDates
     });
-  }, [weekDays, currentWeekState.dates, numColumns]);
+    
+    // Force re-render
+    setRenderKey(prev => prev + 1);
+    
+    console.log('Navigated to previous week:', prevMondayDate);
+  }, [getMondayOfWeek, getWeekDates, weekOffset, currentDate, shiftData]);
+
+  // Handle navigation to the next week
+  const handleNextWeek = useCallback(() => {
+    // Save current shift data before navigating
+    if (Object.keys(shiftData).length > 0) {
+      console.log('Saving current week shift data before navigating to next week');
+      localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
+    }
+    
+    // Set the new week offset
+    const newOffset = weekOffset + 1;
+    setWeekOffset(newOffset);
+    
+    // Get the date of the next week's Monday
+    const nextMondayDate = getMondayOfWeek(currentDate, newOffset);
+    const nextWeekDates = getWeekDates(nextMondayDate);
+    
+    // Update current week state
+    setCurrentWeek({
+      id: nextMondayDate,
+      startDate: new Date(nextMondayDate),
+      dates: nextWeekDates
+    });
+    
+    // Force re-render
+    setRenderKey(prev => prev + 1);
+    
+    console.log('Navigated to next week:', nextMondayDate);
+  }, [getMondayOfWeek, getWeekDates, weekOffset, currentDate, shiftData]);
+
+  // Reset to current week
+  const goToCurrentWeek = useCallback(() => {
+    // Save current shift data before navigating
+    if (Object.keys(shiftData).length > 0) {
+      console.log('Saving current week shift data before navigating to current week');
+      localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
+    }
+    
+    // Reset week offset to 0
+    setWeekOffset(0);
+    
+    // Get current Monday date
+    const currentMondayDate = getCurrentMonday();
+    const currentWeekDates = getWeekDates(currentMondayDate);
+    
+    // Update current week state
+    setCurrentWeek({
+      id: currentMondayDate,
+      startDate: new Date(currentMondayDate),
+      dates: currentWeekDates
+    });
+    
+    // Force re-render
+    setRenderKey(prev => prev + 1);
+    
+    console.log('Reset to current week:', currentMondayDate);
+  }, [getCurrentMonday, getWeekDates, shiftData]);
+
+  // Check if a date is today
+  const isCurrentDay = useCallback((date) => {
+    return date === currentDate;
+  }, [currentDate]);
+
+  // Check if a date is in the future
+  const isFutureDate = useCallback((date) => {
+    return new Date(date) > new Date(currentDate);
+  }, [currentDate]);
+
+  // Make sure we get fresh shift data when the component mounts
+  useEffect(() => {
+    const savedShiftData = JSON.parse(localStorage.getItem('shiftTableShiftData') || '{}');
+    console.log('Loading shift data on mount:', savedShiftData);
+    setShiftData(savedShiftData);
+  }, []);
+
+  // Save shiftData to localStorage whenever it changes
+  useEffect(() => {
+    if (Object.keys(shiftData).length > 0) {
+      console.log('Saving shiftData to localStorage:', shiftData);
+      localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
+    }
+  }, [shiftData]);
+
+  // Save shift data before navigating weeks
+  useEffect(() => {
+    // Save current data whenever week changes
+    return () => {
+      if (Object.keys(shiftData).length > 0) {
+        console.log('Saving shift data before week change');
+        localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftData));
+      }
+    };
+  }, [currentWeekState.dates, shiftData]);
+
+  // When currentWeekState changes, save any existing shift data and reload for the new week
+  useEffect(() => {
+    const weekStartDate = currentWeekState.dates[0];
+    console.log('Week changed to:', weekStartDate);
+    
+    // Force reload by incrementing renderKey
+    setRenderKey(prev => prev + 1);
+  }, [currentWeekState]);
+
+  // Load initial shift data on mount and when shiftData changes
+  useEffect(() => {
+    console.log("ShiftTable: Loading all shift data");
+    
+    try {
+      // Load all shift data from localStorage
+      const savedShiftData = localStorage.getItem('shiftTableShiftData');
+      if (savedShiftData) {
+        setShiftData(JSON.parse(savedShiftData));
+      }
+    } catch (error) {
+      console.error('Error loading initial shift data:', error);
+    }
+  }, []);
+
+  // Save rows to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('shiftTableRows', JSON.stringify(rows));
+    console.log('Saved rows to localStorage:', rows);
+  }, [rows]);
+
+  // Save staff IDs to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('shiftTableStaffIDs', JSON.stringify(rowStaffIDs));
+  }, [rowStaffIDs]);
+
+  // Clear notification after timeout
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000); // 3 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  // Function to load staff list from localStorage and keep stable IDs for rows
+  const loadStaffList = useCallback(() => {
+    try {
+      const savedStaff = JSON.parse(localStorage.getItem('shiftTableStaff') || '[]');
+      console.log('Loaded staff list:', savedStaff);
+      
+      if (savedStaff.length > 0) {
+        // Create the header row
+        const headerRow = {
+          id: 'row-1',
+          cells: [
+            'STAFF',
+            `${weekDays.monday.dayName}\n${weekDays.monday.date}`,
+            `${weekDays.tuesday.dayName}\n${weekDays.tuesday.date}`,
+            `${weekDays.wednesday.dayName}\n${weekDays.wednesday.date}`,
+            `${weekDays.thursday.dayName}\n${weekDays.thursday.date}`,
+            `${weekDays.friday.dayName}\n${weekDays.friday.date}`,
+            `${weekDays.saturday.dayName}\n${weekDays.saturday.date}`,
+            `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
+          ]
+        };
+        
+        // Create staff rows with STABLE IDs (no Date.now())
+        const staffRows = savedStaff.map(staffName => ({
+          id: `row-staff-${staffName.replace(/\s+/g, '-').toLowerCase()}`,
+          cells: [staffName, ...Array(numColumns - 1).fill('')]
+        }));
+        
+        // Create add staff row
+        const addStaffRow = {
+          id: 'row-2',
+          cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
+        };
+        
+        // Set rows state
+        setRows([headerRow, ...staffRows, addStaffRow]);
+      }
+    } catch (error) {
+      console.error('Error loading staff list:', error);
+    }
+  }, [weekDays, numColumns]);
 
   // Handle opening the staff selector
   const handleAddStaffClick = useCallback(() => {
@@ -241,45 +360,173 @@ function ShiftTable() {
     });
   }, [updateDebugVariables]);
 
-  // Handle adding selected staff to the rota
+  // Find and display the saved shift information for a specific cell
+  const getShiftForCell = useCallback((staffName, day) => {
+    if (!staffName || !day) return {}; // Return empty object, not null
+    
+    // Get current week's Monday date
+    const weekStartDate = currentWeekState.dates[0];
+    
+    // Create the week-specific key for this cell
+    const weekSpecificKey = `${staffName}_${day}_${weekStartDate}`;
+    
+    // Log for debugging
+    console.log(`Looking for shift: ${weekSpecificKey}`);
+
+    try {
+      // Always get fresh data from localStorage to ensure most current data
+      const savedShiftData = JSON.parse(localStorage.getItem('shiftTableShiftData') || '{}');
+      
+      // Check if there is data for this staff/day/week
+      if (savedShiftData && savedShiftData[weekSpecificKey]) {
+        console.log(`Found shift data for ${weekSpecificKey}:`, savedShiftData[weekSpecificKey]);
+        return savedShiftData[weekSpecificKey];
+      }
+      
+      // Nothing found
+      console.log(`No shift data found for ${weekSpecificKey}`);
+    } catch (error) {
+      console.error('Error retrieving shift data:', error);
+    }
+    
+    // Return empty object if nothing found - NEVER return null
+    return {};
+  }, [currentWeekState.dates]);
+
+  // When a shift time changes, update our state with the new information
+  const handleShiftChange = useCallback((staffName, day, startTime, endTime) => {
+    // Get current week's Monday date
+    const weekStartDate = currentWeekState.dates[0];
+    
+    // Create the week-specific key for this cell
+    const weekSpecificKey = `${staffName}_${day}_${weekStartDate}`;
+    
+    // Create or update shift data for this cell
+    const shiftUpdate = {
+      staffName,
+      day,
+      weekStartDate,
+      startTime,
+      endTime,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Log detailed update for debugging
+    console.log(`Updating shift for ${staffName} on ${day}:`, {
+      key: weekSpecificKey,
+      oldData: shiftData[weekSpecificKey] || 'No previous data',
+      newData: shiftUpdate
+    });
+    
+    // Update our state with the new shift information
+    const updatedShiftData = {
+      ...shiftData,
+      [weekSpecificKey]: shiftUpdate
+    };
+    
+    // Update state
+    setShiftData(updatedShiftData);
+    
+    // Immediately save to localStorage to prevent data loss
+    localStorage.setItem('shiftTableShiftData', JSON.stringify(updatedShiftData));
+    
+    // Force re-render to ensure data is displayed correctly
+    setRenderKey(prev => prev + 1);
+    
+    // Track in debug
+    updateDebugVariables({
+      ShiftTable: {
+        lastShiftUpdate: {
+          value: {
+            staffName,
+            day,
+            weekStartDate,
+            startTime,
+            endTime,
+            timestamp: new Date().toLocaleTimeString()
+          },
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "object"
+        }
+      }
+    });
+  }, [shiftData, currentWeekState.dates, updateDebugVariables]);
+
+  // Render a cell based on its content and position
+  const renderCell = useCallback((cell, rowIndex, colIndex) => {
+    const row = rows[rowIndex];
+    const isFirstRow = rowIndex === 0;
+    const isFirstCol = colIndex === 0;
+    const isAddStaffRow = row.id === 'row-2';
+    
+    return (
+      <td className="border p-2">
+        {isAddStaffRow && colIndex === 0 ? (
+          <AddStaffButton onClick={handleAddStaffClick} />
+        ) : isFirstRow || colIndex === 0 ? (
+          cell
+        ) : (!isFirstRow && !isAddStaffRow) ? (
+          <ShiftSlot
+            staffName={rows[rowIndex].cells[0]}
+            day={rows[0].cells[colIndex].split('\n')[0]} // Get day name from header
+            rowId={row.id}
+            colIndex={colIndex}
+            onShiftChange={handleShiftChange}
+            shiftData={getShiftForCell(rows[rowIndex].cells[0], rows[0].cells[colIndex].split('\n')[0])}
+            weekStartDate={currentWeekState.dates[0]}
+            key={`shift-${rows[rowIndex].cells[0]}-${rows[0].cells[colIndex].split('\n')[0]}-${currentWeekState.dates[0]}-${renderKey}`}
+          />
+        ) : (
+          cell
+        )}
+      </td>
+    );
+  }, [rows, handleAddStaffClick, handleShiftChange, getShiftForCell, currentWeekState.dates, renderKey]);
+
+  // Handle adding staff to the roster
   const handleAddStaff = useCallback((staffToAdd) => {
     if (!staffToAdd || staffToAdd.length === 0) return;
     
-    // Get current week's Monday date for tracking
-    const currentWeekMonday = currentWeekState.dates[0];
-    
-    // Add new rows for each selected staff
-    setRows(currentRows => {
-      const newRows = [...currentRows];
-      
+    // Update our rows state to include the new staff
+    setRows(newRows => {
       // Extract all rows except the Add Staff row (last row)
       const contentRows = newRows.filter(row => row.id !== 'row-2');
       
-      // Add new staff rows
+      // Add new staff rows with STABLE IDs
       staffToAdd.forEach(staff => {
-        // Create a week-specific row ID that includes the week start date
-        const newRowId = `row-${Date.now()}-${staff.id}-${currentWeekMonday}`;
-        contentRows.push({
-          id: newRowId,
-          cells: [staff.name, ...Array(numColumns - 1).fill('')],
-          weekStartDate: currentWeekMonday // Store the week info directly in the row
-        });
+        // Create a stable row ID based on staff name
+        const stableRowId = `row-staff-${staff.name.replace(/\s+/g, '-').toLowerCase()}`;
         
-        // Update staff IDs tracking with week information
-        setRowStaffIDs(prev => ({
-          ...prev,
-          [newRowId]: {
-            staffId: staff.id,
-            weekStartDate: currentWeekMonday
+        // Check if this staff is already in the table
+        const staffExists = contentRows.some(row => row.id === stableRowId);
+        
+        if (!staffExists) {
+          contentRows.push({
+            id: stableRowId,
+            cells: [staff.name, ...Array(numColumns - 1).fill('')]
+          });
+          
+          // Add the staff name to the localStorage staff list
+          const savedStaff = JSON.parse(localStorage.getItem('shiftTableStaff') || '[]');
+          if (!savedStaff.includes(staff.name)) {
+            savedStaff.push(staff.name);
+            localStorage.setItem('shiftTableStaff', JSON.stringify(savedStaff));
           }
-        }));
+          
+          // Update staff IDs tracking
+          setRowStaffIDs(prev => ({
+            ...prev,
+            [stableRowId]: {
+              staffId: staff.id
+            }
+          }));
+        }
       });
       
       // Add the Add Staff row back at the end
       contentRows.push({
         id: 'row-2',
-        cells: ['Add Staff', ...Array(numColumns - 1).fill('')],
-        weekStartDate: currentWeekMonday
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
       });
       
       return contentRows;
@@ -290,6 +537,9 @@ function ShiftTable() {
     
     // Show notification
     setNotification(`${staffToAdd.length} staff added`);
+    
+    // Force reload by incrementing renderKey
+    setRenderKey(prev => prev + 1);
     
     // Track in debug
     updateDebugVariables({
@@ -396,33 +646,10 @@ function ShiftTable() {
     return Object.values(rowStaffIDs);
   }, [rowStaffIDs]);
 
-  // Handle shift time changes
-  const handleShiftChange = useCallback((staffName, day, startTime, endTime) => {
-    // Get current week's Monday date as an identifier
-    const weekStartDate = currentWeekState.dates[0]; // Monday's date in YYYY-MM-DD format
-    
-    // Update shift data with week information
-    setShiftData(prev => ({
-      ...prev,
-      [`${staffName}_${day}_${weekStartDate}`]: {
-        startTime,
-        endTime,
-        weekStartDate, // Store the week this shift belongs to
-        dayDate: weekDays[day.toLowerCase()]?.date || '', // Store the specific date
-        lastUpdated: new Date().toISOString()
-      }
-    }));
-  }, [currentWeekState.dates, weekDays]);
-  
-  // Find and display the saved shift information for a specific cell
-  const getShiftForCell = useCallback((staffName, day) => {
-    // Get current week's Monday date
-    const weekStartDate = currentWeekState.dates[0];
-    
-    // Look for shifts only in the current week
-    const weekSpecificKey = `${staffName}_${day}_${weekStartDate}`;
-    return shiftData?.[weekSpecificKey] || {};
-  }, [shiftData, currentWeekState.dates]);
+  // Load staff list on mount and when week changes
+  useEffect(() => {
+    loadStaffList();
+  }, [loadStaffList, currentWeekState.dates]);
 
   // Format shift data for the debug view to avoid duplication
   const formatShiftDataForDebug = useCallback(() => {
@@ -567,18 +794,44 @@ function ShiftTable() {
     formatShiftDataForDebug
   ]);
 
+  // Update debug variables whenever important state changes
+  useEffect(() => {
+    updateDebugVariables({
+      ShiftTable: {
+        currentWeek: {
+          weekOffset,
+          startDate: currentWeekState.dates[0],
+          allDates: currentWeekState.dates,
+          lastUpdated: new Date().toISOString()
+        },
+        dataStats: {
+          rowCount: rows.length,
+          shiftCount: Object.keys(shiftData || {}).length,
+          staffCount: rows.filter(row => row.id !== 'row-1' && row.id !== 'row-2').length
+        }
+      }
+    });
+    
+    // Debug log when week changes
+    console.log('Week state updated:', {
+      weekOffset,
+      startDate: currentWeekState.dates[0],
+      allDates: currentWeekState.dates
+    });
+  }, [currentWeekState, rows, shiftData, weekOffset, updateDebugVariables]);
+
   return (
     <div className="flex-1 overflow-x-auto">
       {/* Navigation Controls */}
       <div className="flex gap-2 mb-4">
         <button 
-          onClick={() => navigateWeek('previous')}
+          onClick={handlePrevWeek}
           className="px-4 py-2 border rounded hover:bg-gray-100"
         >
           Previous Week
         </button>
         <button 
-          onClick={() => navigateWeek('next')}
+          onClick={handleNextWeek}
           className="px-4 py-2 border rounded hover:bg-gray-100"
         >
           Next Week
@@ -607,12 +860,7 @@ function ShiftTable() {
                       <td
                         key={`${row.id}-cell-${colIndex}`}
                         data-col-index={colIndex}
-                        className={`
-                          border p-2 ${isFirstCol ? 'min-w-[7.5rem]' : 'min-w-[100px]'}
-                          ${isFirstRow ? 'sticky top-0 bg-white z-10' : ''}
-                          ${isFirstCol ? 'sticky left-0 bg-white z-20' : ''}
-                          ${isFirstRow && isFirstCol ? 'z-30' : ''}
-                        `}
+                        className="border p-2"
                       >
                         {isAddStaffRow && colIndex === 0 ? (
                           <AddStaffButton onClick={handleAddStaffClick} />
@@ -625,6 +873,9 @@ function ShiftTable() {
                             rowId={row.id}
                             colIndex={colIndex}
                             onShiftChange={handleShiftChange}
+                            shiftData={getShiftForCell(rows[rowIndex].cells[0], rows[0].cells[colIndex].split('\n')[0])}
+                            weekStartDate={currentWeekState.dates[0]}
+                            key={`shift-${rows[rowIndex].cells[0]}-${rows[0].cells[colIndex].split('\n')[0]}-${currentWeekState.dates[0]}-${renderKey}`}
                           />
                         ) : (
                           cell
@@ -635,7 +886,7 @@ function ShiftTable() {
                   {/* Actions column with Remove button */}
                   <td
                     key={`${row.id}-action`}
-                    className="border p-2 min-w-[100px]"
+                    className="border p-2"
                   >
                     {rowIndex === 0 ? (
                       'ACTIONS'

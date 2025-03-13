@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useDebug } from './Debug/DebugContext';
 
-function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange }) {
+function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData = {}, weekStartDate = '' }) {
   const { updateDebugVariables } = useDebug();
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [weekStartDate, setWeekStartDate] = useState('');
+  
+  // Initialize state from props
+  const [startTime, setStartTime] = useState(shiftData?.startTime || '');
+  const [endTime, setEndTime] = useState(shiftData?.endTime || '');
+  
+  // Debug when component renders
+  console.log(`ShiftSlot (${staffName}-${day}) render:`, {
+    key: `${staffName}-${day}-${weekStartDate}`,
+    hasShiftData: !!shiftData,
+    startTimeFromProps: shiftData?.startTime || '', 
+    endTimeFromProps: shiftData?.endTime || '',
+    startTimeInState: startTime,
+    endTimeInState: endTime
+  });
+  
+  // Log what we received
+  console.log(`ShiftSlot (${staffName}-${day}) received:`, {
+    startTime: shiftData?.startTime || '', 
+    endTime: shiftData?.endTime || '',
+    hasData: Object.keys(shiftData || {}).length > 0
+  });
   
   // Generate time options in 15-minute increments
   const timeOptions = [];
@@ -39,78 +57,71 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange }) {
     return `(${hours}${minutes > 0 ? `:${minutes.toString().padStart(2, '0')}` : ''} ${hours === 1 ? 'hour' : 'hours'})`;
   };
   
-  // Handle start time change
+  // Update state when shiftData props change
+  useEffect(() => {
+    // Always log what we receive for debugging
+    console.log(`ShiftSlot (${staffName}-${day}) received props:`, {
+      hasShiftData: !!shiftData,
+      shiftData,
+      weekStartDate
+    });
+    
+    // Always reset times when receiving new props
+    // This is critical for properly showing/hiding shifts when navigating weeks
+    if (shiftData && (shiftData.startTime || shiftData.endTime)) {
+      // We have actual shift data - show it
+      setStartTime(shiftData.startTime || '');
+      setEndTime(shiftData.endTime || '');
+      
+      console.log(`ShiftSlot (${staffName}-${day}) set times from props:`, {
+        startTime: shiftData.startTime || '',
+        endTime: shiftData.endTime || ''
+      });
+    } else {
+      // No shift data for this cell - clear the times
+      setStartTime('');
+      setEndTime('');
+      
+      console.log(`ShiftSlot (${staffName}-${day}) cleared times (no data)`);
+    }
+  }, [shiftData, staffName, day, weekStartDate]);
+  
+  // Handle changes to the startTime
   const handleStartTimeChange = (e) => {
     const newStartTime = e.target.value;
     setStartTime(newStartTime);
+    console.log(`ShiftSlot (${staffName}-${day}) start time changed:`, newStartTime);
     
-    // If end time is now invalid (earlier than start time), clear it
-    if (endTime && endTime <= newStartTime) {
-      setEndTime('');
-    }
-    
-    // Update parent component only
-    if (onShiftChange) {
-      onShiftChange(staffName, day, newStartTime, endTime);
-    }
+    // Notify the parent component of the change
+    onShiftChange(staffName, day, newStartTime, endTime);
   };
   
-  // Handle end time change
+  // Handle changes to the endTime
   const handleEndTimeChange = (e) => {
     const newEndTime = e.target.value;
     setEndTime(newEndTime);
+    console.log(`ShiftSlot (${staffName}-${day}) end time changed:`, newEndTime);
     
-    // Update parent component only
-    if (onShiftChange) {
-      onShiftChange(staffName, day, startTime, newEndTime);
-    }
+    // Notify the parent component of the change
+    onShiftChange(staffName, day, startTime, newEndTime);
   };
   
-  // Load saved shift data when component mounts or when staff/day changes
+  // Add debugging to track state
   useEffect(() => {
-    // Get all shift data from localStorage
-    const savedShiftData = JSON.parse(localStorage.getItem('shiftData') || '{}');
-    
-    // Get the current week's Monday date - we need to check the header cells to find this
-    // First get all rows from localStorage
-    const savedRows = JSON.parse(localStorage.getItem('shiftTableRows') || '[]');
-    
-    // Find the header row (first row)
-    const headerRow = savedRows.find(row => row.id === 'row-1');
-    
-    if (headerRow && headerRow.cells && headerRow.cells.length > 1) {
-      // Parse the Monday cell which has format "Monday\n2025-03-10"
-      const mondayCell = headerRow.cells[1];
-      if (mondayCell) {
-        const datePart = mondayCell.split('\n')[1];
-        if (datePart) {
-          setWeekStartDate(datePart);
-          
-          // Now try to find the shift with the week-specific key first
-          const weekSpecificKey = `${staffName}_${day}_${datePart}`;
-          const weekSpecificShift = savedShiftData[weekSpecificKey];
-          
-          if (weekSpecificShift && weekSpecificShift.startTime && weekSpecificShift.endTime) {
-            setStartTime(weekSpecificShift.startTime);
-            setEndTime(weekSpecificShift.endTime);
-            return;
-          }
-        }
+    updateDebugVariables({
+      [`shiftSlot-${staffName}-${day}-${weekStartDate}`]: {
+        hasShiftData: !!shiftData,
+        startTime,
+        endTime,
+        weekStartDate,
+        lastUpdated: new Date().toISOString()
       }
-    }
-    
-    // If we couldn't find week-specific data, try the legacy format
-    const legacyKey = `${staffName}_${day}`;
-    const legacyShift = savedShiftData[legacyKey];
-    
-    if (legacyShift && legacyShift.startTime && legacyShift.endTime) {
-      setStartTime(legacyShift.startTime);
-      setEndTime(legacyShift.endTime);
-    }
-  }, [staffName, day]);
+    });
+  }, [updateDebugVariables, shiftData, startTime, endTime, staffName, day, weekStartDate]);
   
+  // Return the component UI
   return (
-    <div className="flex flex-col space-y-1">
+    <div className="flex flex-col space-y-1" data-testid={`shift-slot-${staffName}-${day}-${weekStartDate}`}>
       <div className="flex space-x-1 items-center">
         <select 
           value={startTime} 
