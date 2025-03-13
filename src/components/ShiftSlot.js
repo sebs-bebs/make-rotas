@@ -108,54 +108,69 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
   
   // Add debugging to track state
   useEffect(() => {
+    // Calculate the duration in the background
+    const duration = (startTime && endTime) ? calculateDuration() : '';
+    
     updateDebugVariables({
       [`shiftSlot-${staffName}-${day}-${weekStartDate}`]: {
         hasShiftData: !!shiftData,
         startTime,
         endTime,
         weekStartDate,
+        duration, // Add duration to debug variables
         lastUpdated: new Date().toISOString()
       }
     });
-  }, [updateDebugVariables, shiftData, startTime, endTime, staffName, day, weekStartDate]);
+  }, [updateDebugVariables, shiftData, startTime, endTime, staffName, day, weekStartDate, calculateDuration]);
   
   // Return the component UI
   return (
-    <div className="flex flex-col space-y-1" data-testid={`shift-slot-${staffName}-${day}-${weekStartDate}`}>
-      <div className="flex space-x-1 items-center">
-        <select 
-          value={startTime} 
-          onChange={handleStartTimeChange}
-          className="text-xs border rounded p-1 w-20"
+    <div data-testid={`shift-slot-${staffName}-${day}-${weekStartDate}`}>
+      {/* Show the time chip if both times are selected, otherwise show the dropdowns */}
+      {startTime && endTime ? (
+        // Simple chip showing time range
+        <div 
+          className="text-xs border rounded p-1 text-center cursor-pointer"
+          onClick={() => {
+            // Reset times to allow re-selection
+            setStartTime('');
+            setEndTime('');
+            onShiftChange(staffName, day, '', '');
+          }}
         >
-          <option value="">Start</option>
-          {timeOptions.map(time => (
-            <option key={`start-${time}`} value={time}>
-              {time}
-            </option>
-          ))}
-        </select>
-        
-        <span className="text-xs">-</span>
-        
-        <select 
-          value={endTime} 
-          onChange={handleEndTimeChange}
-          className="text-xs border rounded p-1 w-20"
-          disabled={!startTime}
-        >
-          <option value="">End</option>
-          {validEndTimeOptions.map(time => (
-            <option key={`end-${time}`} value={time}>
-              {time}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {startTime && endTime && (
-        <div className="text-xs text-center">
-          {calculateDuration()}
+          {startTime} - {endTime}
+        </div>
+      ) : (
+        // Show dropdowns when times are not yet selected
+        <div className="flex space-x-1 items-center">
+          <select 
+            value={startTime} 
+            onChange={handleStartTimeChange}
+            className="text-xs border rounded p-1 w-20"
+          >
+            <option value="">Start</option>
+            {timeOptions.map(time => (
+              <option key={`start-${time}`} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+          
+          <span className="text-xs">-</span>
+          
+          <select 
+            value={endTime} 
+            onChange={handleEndTimeChange}
+            className="text-xs border rounded p-1 w-20"
+            disabled={!startTime}
+          >
+            <option value="">End</option>
+            {validEndTimeOptions.map(time => (
+              <option key={`end-${time}`} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </div>

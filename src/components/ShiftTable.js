@@ -460,7 +460,11 @@ function ShiftTable() {
     const isAddStaffRow = row.id === 'row-2';
     
     return (
-      <td className="border p-2">
+      <td
+        key={`${row.id}-cell-${colIndex}`}
+        data-col-index={colIndex}
+        className={`border p-2 ${colIndex === 0 ? 'min-w-[140px] w-[140px]' : (!isFirstRow && colIndex > 0) ? 'min-w-[180px] w-[180px]' : ''}`}
+      >
         {isAddStaffRow && colIndex === 0 ? (
           <AddStaffButton onClick={handleAddStaffClick} />
         ) : isFirstRow || colIndex === 0 ? (
@@ -860,7 +864,7 @@ function ShiftTable() {
                       <td
                         key={`${row.id}-cell-${colIndex}`}
                         data-col-index={colIndex}
-                        className="border p-2"
+                        className={`border p-2 ${colIndex === 0 ? 'min-w-[140px] w-[140px]' : (!isFirstRow && colIndex > 0) ? 'min-w-[180px] w-[180px]' : ''}`}
                       >
                         {isAddStaffRow && colIndex === 0 ? (
                           <AddStaffButton onClick={handleAddStaffClick} />
