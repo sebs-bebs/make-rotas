@@ -10,7 +10,8 @@ import { DebugProvider, DebugDisplay } from './components/Debug';
 import { DateProvider } from './context/DateContext';
 import { StaffProvider } from './context/StaffContext';
 import { StaffDetailProvider } from './context/StaffDetailContext';
-import TestingPage from './components/TestingPage';
+// Testing components are kept in files but not imported for use
+// import TestingPage from './components/TestingPage';
 
 // This is our main App component - it's like the container that holds everything else
 function App() {
@@ -29,7 +30,8 @@ function App() {
                 {/* Main content area with some spacing around it */}
                 <main className="container mx-auto px-4 py-8">
                   <Routes>
-                    <Route path="/testing" element={<TestingPage />} />
+                    {/* Testing routes removed from production build */}
+                    {/* <Route path="/testing" element={<TestingPage />} /> */}
                     <Route path="*" element={<TabNavigation />} />
                   </Routes>
                 </main>

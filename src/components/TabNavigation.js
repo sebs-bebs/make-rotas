@@ -5,7 +5,8 @@ import React, { useCallback } from 'react';
 import { useDebug } from './Debug';
 import ShiftTable from './ShiftTable';
 import StaffList from './StaffList';
-import TestPage from './TestPage';
+// Test pages kept in codebase but not used in production
+// import TestPage from './TestPage';
 
 function TabNavigation() {
     // Load the active tab from localStorage or default to ShiftTable for first-time users
@@ -44,7 +45,7 @@ function TabNavigation() {
             value: {
               ShiftTable: activeTab === "ShiftTable",
               StaffList: activeTab === "StaffList",
-              TestPage: activeTab === "TestPage",
+              // TestPage: activeTab === "TestPage", // Test page disabled for production
               TabNavigation: true,
               StaffDetail: true
             },
@@ -95,8 +96,8 @@ function TabNavigation() {
           >
             Staff List
           </button>
-          {/* Test tab - becomes blue when selected */}
-          <button
+          {/* Test tab removed for production */}
+          {/* <button
             className={`flex items-center px-4 py-2 cursor-pointer ${
               activeTab === "TestPage" ? "font-bold text-blue-500" : ""
             }`}
@@ -104,7 +105,7 @@ function TabNavigation() {
             aria-current={activeTab === "TestPage" ? "page" : undefined}
           >
             Test
-          </button>
+          </button> */}
         </nav>
         {/* Area below the tabs where the content is displayed */}
         <div className="tab-content mt-4 flex flex-col">
@@ -112,8 +113,8 @@ function TabNavigation() {
           {activeTab === "ShiftTable" && <ShiftTable />}
           {/* Show StaffList when StaffList is selected */}
           {activeTab === "StaffList" && <StaffList />}
-          {/* Show TestPage when TestPage is selected */}
-          {activeTab === "TestPage" && <TestPage />}
+          {/* Test page removed for production */}
+          {/* {activeTab === "TestPage" && <TestPage />} */}
         </div>
       </div>
     );
