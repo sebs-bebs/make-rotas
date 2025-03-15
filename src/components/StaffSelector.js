@@ -10,10 +10,13 @@ const StaffSelector = ({ isOpen, onClose, onAddStaff, currentStaffIds = [] }) =>
   const [selectedStaff, setSelectedStaff] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get staff list from StaffDetailContext
+  // Get staff list from StaffDetailContext with modified filtering logic
   const getStaffList = useCallback(() => {
     // Get all staff members from context
     const allStaff = getStaffMember();
+    
+    console.log('DEBUG StaffSelector getStaffList - All staff from context:', allStaff);
+    console.log('DEBUG StaffSelector getStaffList - currentStaffIds (staff names) passed in:', currentStaffIds);
     
     if (!Array.isArray(allStaff)) return [];
     
@@ -26,8 +29,14 @@ const StaffSelector = ({ isOpen, onClose, onAddStaff, currentStaffIds = [] }) =>
         role: staff.role || ''
       }));
     
-    // Filter out staff already in the rota
-    return activeStaff.filter(staff => !currentStaffIds.includes(staff.id));
+    console.log('DEBUG StaffSelector getStaffList - Active staff after mapping:', activeStaff);
+    
+    // Filter out staff already in the table by comparing NAMES
+    // currentStaffIds is now an array of staff NAMES from the table
+    const filteredStaff = activeStaff.filter(staff => !currentStaffIds.includes(staff.name));
+    console.log('DEBUG StaffSelector getStaffList - Final filtered staff:', filteredStaff);
+    
+    return filteredStaff;
   }, [getStaffMember, currentStaffIds]);
 
   useEffect(() => {
