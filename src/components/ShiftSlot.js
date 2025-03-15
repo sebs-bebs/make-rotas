@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDebug } from './Debug/DebugContext';
 
 function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData = {}, weekStartDate = '' }) {
@@ -26,22 +26,48 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
   });
   
   // Generate time options in 15-minute increments
-  const timeOptions = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
-      const formattedHour = hour.toString().padStart(2, '0');
-      const formattedMinute = minute.toString().padStart(2, '0');
-      timeOptions.push(`${formattedHour}:${formattedMinute}`);
+  const timeOptions = useMemo(() => {
+    const options = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const formattedHour = hour.toString().padStart(2, '0');
+        const formattedMinute = minute.toString().padStart(2, '0');
+        options.push(`${formattedHour}:${formattedMinute}`);
+      }
     }
-  }
+    return options;
+  }, []);
   
   // Filter end time options to only show times after start time
-  const validEndTimeOptions = startTime 
-    ? timeOptions.filter(time => time > startTime) 
-    : timeOptions;
-    
+  const validEndTimeOptions = useMemo(() => {
+    if (!startTime) return [];
+    return timeOptions.filter(time => time > startTime);
+  }, [timeOptions, startTime]);
+  
+  // Debug time options calculation
+  useEffect(() => {
+    updateDebugVariables({
+      [`${staffName}_${day}_timeOptionsCount`]: timeOptions.length,
+      [`${staffName}_${day}_validEndTimeOptionsCount`]: validEndTimeOptions.length,
+      [`${staffName}_${day}_startTime`]: startTime,
+      [`${staffName}_${day}_endTime`]: endTime,
+    });
+  }, [updateDebugVariables, staffName, day, timeOptions.length, validEndTimeOptions.length, startTime, endTime]);
+
+  // Debug logging for time options
+  useEffect(() => {
+    if (startTime) {
+      console.log(`ShiftSlot (${staffName}-${day}) validEndTimeOptions:`, {
+        startTime,
+        endTime,
+        optionsCount: validEndTimeOptions.length,
+        hasOptions: validEndTimeOptions.length > 0
+      });
+    }
+  }, [startTime, endTime, validEndTimeOptions.length, staffName, day]);
+  
   // Calculate shift duration in hours
-  const calculateDuration = () => {
+  const calculateDuration = useCallback(() => {
     if (!startTime || !endTime) return '';
     
     const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -55,7 +81,7 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
     const minutes = durationMinutes % 60;
     
     return `(${hours}${minutes > 0 ? `:${minutes.toString().padStart(2, '0')}` : ''} ${hours === 1 ? 'hour' : 'hours'})`;
-  };
+  }, [startTime, endTime]);
   
   // Update state when shiftData props change
   useEffect(() => {
@@ -86,24 +112,46 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
     }
   }, [shiftData, staffName, day, weekStartDate]);
   
-  // Handle changes to the startTime
+  // Handle changes to the startTime - FIXED
   const handleStartTimeChange = (e) => {
     const newStartTime = e.target.value;
-    setStartTime(newStartTime);
-    console.log(`ShiftSlot (${staffName}-${day}) start time changed:`, newStartTime);
+    console.log(`DEBUG: handleStartTimeChange called with value: "${newStartTime}"`);
+    console.log(`DEBUG: Before update - Current startTime: "${startTime}", endTime: "${endTime}"`);
     
-    // Notify the parent component of the change
-    onShiftChange(staffName, day, newStartTime, endTime);
+    // First set the local state
+    setStartTime(newStartTime);
+    
+    // Then notify the parent AFTER updating local state
+    // Reset endTime if it's now invalid
+    if (endTime && newStartTime >= endTime) {
+      console.log(`DEBUG: Resetting endTime because current endTime: "${endTime}" is <= new startTime: "${newStartTime}"`);
+      setEndTime('');
+      // Use a small timeout to ensure state updates have been processed
+      setTimeout(() => {
+        onShiftChange(staffName, day, newStartTime, '', weekStartDate);
+      }, 0);
+    } else {
+      // Use a small timeout to ensure state updates have been processed
+      setTimeout(() => {
+        onShiftChange(staffName, day, newStartTime, endTime, weekStartDate);
+      }, 0);
+    }
   };
   
-  // Handle changes to the endTime
+  // Handle changes to the endTime - FIXED
   const handleEndTimeChange = (e) => {
     const newEndTime = e.target.value;
-    setEndTime(newEndTime);
-    console.log(`ShiftSlot (${staffName}-${day}) end time changed:`, newEndTime);
+    console.log(`DEBUG: handleEndTimeChange called with value: "${newEndTime}"`);
+    console.log(`DEBUG: Before update - Current startTime: "${startTime}", endTime: "${endTime}"`);
     
-    // Notify the parent component of the change
-    onShiftChange(staffName, day, startTime, newEndTime);
+    // First set the local state
+    setEndTime(newEndTime);
+    
+    // Then notify the parent AFTER updating local state
+    // Use a small timeout to ensure state updates have been processed
+    setTimeout(() => {
+      onShiftChange(staffName, day, startTime, newEndTime, weekStartDate);
+    }, 0);
   };
   
   // Add debugging to track state
@@ -137,7 +185,7 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
               // Reset times to allow re-selection
               setStartTime('');
               setEndTime('');
-              onShiftChange(staffName, day, '', '');
+              onShiftChange(staffName, day, '', '', weekStartDate);
             }}
             aria-label="Clear time selection"
           >
@@ -167,13 +215,20 @@ function ShiftSlot({ staffName, day, rowId, colIndex, onShiftChange, shiftData =
             onChange={handleEndTimeChange}
             className="text-xs border rounded p-1 w-20"
             disabled={!startTime}
+            data-testid={`end-time-select-${staffName}-${day}`}
           >
             <option value="">End</option>
-            {validEndTimeOptions.map(time => (
-              <option key={`end-${time}`} value={time}>
-                {time}
-              </option>
-            ))}
+            {validEndTimeOptions.length > 0 ? (
+              validEndTimeOptions.map(time => (
+                <option key={`end-${time}`} value={time}>
+                  {time}
+                </option>
+              ))
+            ) : (
+              startTime ? (
+                <option value="">No valid end times</option>
+              ) : null
+            )}
           </select>
         </div>
       )}

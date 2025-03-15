@@ -320,7 +320,7 @@ function ShiftTable() {
       weekStartDate: actualWeekStartDate
     });
     
-    // Create the week-specific key for this shift
+    // Create the week-specific key to look up shift data
     const shiftKey = `${staffName}_${day}_${actualWeekStartDate}`;
     
     // Update shift data
@@ -406,18 +406,104 @@ function ShiftTable() {
     };
   }, [currentWeekState.dates, shiftData]);
 
-  // When currentWeekState changes, save any existing shift data and reload for the new week
+  // CRITICAL FIX: When currentWeekState changes, we must DIRECTLY update the rows
+  // instead of just setting renderKey and relying on another useEffect
   useEffect(() => {
     const weekStartDate = currentWeekState.dates[0];
-    console.log('Week changed to:', weekStartDate);
+    console.log('🔄 DIRECT WEEK UPDATE: Changed to week starting', weekStartDate);
     
-    // Force reload by incrementing renderKey
-    setRenderKey(prev => prev + 1);
-  }, [currentWeekState]);
+    try {
+      // Get the staff for this specific week
+      const staffByWeek = JSON.parse(localStorage.getItem('shiftTableStaffByWeek') || '{}');
+      const staffForThisWeek = staffByWeek[weekStartDate] || [];
+      
+      console.log('📊 DIRECT WEEK UPDATE: Found staff for this week:', {
+        week: weekStartDate,
+        staffCount: staffForThisWeek.length,
+        staff: staffForThisWeek
+      });
+      
+      // Always create header row for this week
+      const headerRow = {
+        id: 'row-1',
+        cells: [
+          'STAFF',
+          `${weekDays.monday.dayName}\n${weekDays.monday.date}`,
+          `${weekDays.tuesday.dayName}\n${weekDays.tuesday.date}`,
+          `${weekDays.wednesday.dayName}\n${weekDays.wednesday.date}`,
+          `${weekDays.thursday.dayName}\n${weekDays.thursday.date}`,
+          `${weekDays.friday.dayName}\n${weekDays.friday.date}`,
+          `${weekDays.saturday.dayName}\n${weekDays.saturday.date}`,
+          `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
+        ],
+        weekStartDate
+      };
+      
+      // Always have "Add Staff" row
+      const addStaffRow = {
+        id: 'row-2',
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')],
+        weekStartDate
+      };
+      
+      // Build rows for ONLY this week's staff
+      const staffRows = staffForThisWeek.map(staffName => {
+        const stableRowId = `row-staff-${staffName.replace(/\s+/g, '-').toLowerCase()}`;
+        return {
+          id: stableRowId,
+          cells: [staffName, ...Array(numColumns - 1).fill('')],
+          weekStartDate
+        };
+      });
+      
+      // Combine all rows in proper order
+      const newRows = [
+        headerRow,
+        ...staffRows,
+        addStaffRow
+      ];
+      
+      console.log(`📋 DIRECT WEEK UPDATE: Setting ${newRows.length} rows for week ${weekStartDate}`);
+      
+      // IMPORTANT: Always replace all rows with the week-specific rows
+      setRows(newRows);
+      
+      // Force a re-render using the renderKey
+      setRenderKey(prev => prev + 1);
+      
+      console.log(`✅ DIRECT WEEK UPDATE: Successfully loaded ${staffForThisWeek.length} staff for week ${weekStartDate}`);
+    } catch (error) {
+      console.error('❌ DIRECT WEEK UPDATE: Error loading staff for week:', error);
+      
+      // Fallback to a clean slate with header and add button
+      const headerRow = {
+        id: 'row-1',
+        cells: [
+          'STAFF',
+          `${weekDays.monday.dayName}\n${weekDays.monday.date}`,
+          `${weekDays.tuesday.dayName}\n${weekDays.tuesday.date}`,
+          `${weekDays.wednesday.dayName}\n${weekDays.wednesday.date}`,
+          `${weekDays.thursday.dayName}\n${weekDays.thursday.date}`,
+          `${weekDays.friday.dayName}\n${weekDays.friday.date}`,
+          `${weekDays.saturday.dayName}\n${weekDays.saturday.date}`,
+          `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
+        ],
+        weekStartDate
+      };
+      
+      const addStaffRow = {
+        id: 'row-2',
+        cells: ['Add Staff', ...Array(numColumns - 1).fill('')],
+        weekStartDate
+      };
+      
+      setRows([headerRow, addStaffRow]);
+    }
+  }, [currentWeekState, weekDays, numColumns]);
 
   // Load initial shift data on mount and when shiftData changes
   useEffect(() => {
-    console.log("ShiftTable: Loading all shift data");
+    console.log(" ShiftTable: Loading all shift data");
     
     try {
       // Load all shift data from localStorage
@@ -426,7 +512,7 @@ function ShiftTable() {
         setShiftData(JSON.parse(savedShiftData));
       }
     } catch (error) {
-      console.error('Error loading initial shift data:', error);
+      console.error(' Error loading initial shift data:', error);
     }
   }, []);
 
@@ -434,7 +520,7 @@ function ShiftTable() {
   const saveRows = useCallback(() => {
     try {
       const currentWeekMonday = currentWeekState.dates[0];
-      console.log(`Saving rows for week ${currentWeekMonday}...`);
+      console.log(` Saving rows for week ${currentWeekMonday}...`);
       
       // Get existing rows by week data
       const savedRowsByWeek = JSON.parse(localStorage.getItem('shiftTableRowsByWeek') || '{}');
@@ -459,9 +545,9 @@ function ShiftTable() {
       // Save back to localStorage
       localStorage.setItem('shiftTableStaffByWeek', JSON.stringify(staffByWeek));
       
-      console.log(`Saved ${rows.length} rows for week ${currentWeekMonday}`);
+      console.log(` Saved ${rows.length} rows for week ${currentWeekMonday}`);
     } catch (error) {
-      console.error('Error saving rows:', error);
+      console.error(' Error saving rows:', error);
     }
   }, [rows, currentWeekState.dates]);
 
@@ -488,85 +574,9 @@ function ShiftTable() {
     }
   }, [notification]);
 
-  // Completely overhaul the week data loading to ensure staff ONLY appear in their specific weeks
-  useEffect(() => {
-    // Get the current week's Monday date
-    const currentWeekMonday = currentWeekState.dates[0];
-    
-    console.log(`LOADING DATA STRICTLY for week ${currentWeekMonday} ONLY`);
-
-    try {
-      // LOAD ONLY STAFF SPECIFICALLY ASSIGNED TO THIS WEEK
-      const staffByWeek = JSON.parse(localStorage.getItem('shiftTableStaffByWeek') || '{}');
-      const staffForThisWeekOnly = staffByWeek[currentWeekMonday] || [];
-      
-      console.log(`Found ${staffForThisWeekOnly.length} staff assigned to week ${currentWeekMonday}:`, staffForThisWeekOnly);
-      
-      // Always create header row for this week
-      const headerRow = {
-        id: 'row-1',
-        cells: [
-          'STAFF',
-          `${weekDays.monday.dayName}\n${weekDays.monday.date}`,
-          `${weekDays.tuesday.dayName}\n${weekDays.tuesday.date}`,
-          `${weekDays.wednesday.dayName}\n${weekDays.wednesday.date}`,
-          `${weekDays.thursday.dayName}\n${weekDays.thursday.date}`,
-          `${weekDays.friday.dayName}\n${weekDays.friday.date}`,
-          `${weekDays.saturday.dayName}\n${weekDays.saturday.date}`,
-          `${weekDays.sunday.dayName}\n${weekDays.sunday.date}`
-        ]
-      };
-      
-      // Always have "Add Staff" row
-      const addStaffRow = {
-        id: 'row-2',
-        cells: ['Add Staff', ...Array(numColumns - 1).fill('')]
-      };
-      
-      // Build rows for ONLY this week's staff
-      const staffRows = staffForThisWeekOnly.map(staffName => {
-        const stableRowId = `row-staff-${staffName.replace(/\s+/g, '-').toLowerCase()}`;
-        return {
-          id: stableRowId,
-          cells: [staffName, ...Array(numColumns - 1).fill('')]
-        };
-      });
-      
-      // Combine all rows in proper order
-      const newRows = [
-        headerRow,
-        ...staffRows,
-        addStaffRow
-      ];
-      
-      // Set the rows state with ONLY this week's staff
-      setRows(newRows);
-      
-      // Update state tracking for this week
-      setRowStaffIDs(prev => ({
-        ...prev,
-        [currentWeekMonday]: staffForThisWeekOnly
-      }));
-      
-      // Force re-render
-      setRenderKey(prev => prev + 1);
-      
-      console.log(`Successfully loaded ONLY ${staffForThisWeekOnly.length} staff for week ${currentWeekMonday}`);
-      
-      // Also get the global staff list for the selector dropdown
-      const globalStaff = JSON.parse(localStorage.getItem('shiftTableStaff') || '[]');
-      setAvailableStaff(globalStaff.map(name => ({
-        id: name.toLowerCase().replace(/\s+/g, '-'),
-        name
-      })));
-    } catch (error) {
-      console.error('Error loading week-specific staff:', error);
-    }
-  }, [currentWeekState.dates, weekDays, numColumns]);
-
   // Fix the staff selection process to prevent showing staff already in the table
   const handleAddStaffClick = useCallback(() => {
-    console.log('DEBUG: Add Staff button clicked');
+    console.log('🔘 ADD STAFF BUTTON: Button clicked');
     
     try {
       // 1. Get all staff from StaffList context
@@ -587,14 +597,14 @@ function ShiftTable() {
         .filter(row => row.id !== 'row-1' && row.id !== 'row-2') // Skip header and add staff rows
         .map(row => row.cells[0]);                               // Staff name is in first cell
       
-      console.log('DEBUG: Staff in table:', staffNamesInTable);
+      console.log('🔍 ADD STAFF BUTTON: Staff already in table:', staffNamesInTable);
       
       // 3. Filter out staff already in the table
       const filteredStaff = availableStaffFromContext.filter(
         staff => !staffNamesInTable.includes(staff.name)
       );
       
-      console.log('DEBUG: Filtered staff for selector:', {
+      console.log('📋 ADD STAFF BUTTON: Filtered staff for selector:', {
         availableCount: filteredStaff.length,
         available: filteredStaff,
         alreadyInTable: staffNamesInTable
@@ -604,7 +614,7 @@ function ShiftTable() {
       setAvailableStaff(filteredStaff);
       setIsStaffSelectorOpen(true);
     } catch (error) {
-      console.error('Error preparing staff for selector:', error);
+      console.error('❌ ADD STAFF BUTTON: Error preparing staff for selector:', error);
       // Fallback to original method if there's an error
       const allStaffFromLocal = JSON.parse(localStorage.getItem('shiftTableStaff') || '[]');
       const staffInTableRows = rows
@@ -634,247 +644,138 @@ function ShiftTable() {
     });
   }, [rows, setIsStaffSelectorOpen, updateDebugVariables]);
 
-  // Get shift data for a specific cell
-  const getShiftForCell = useCallback((staffName, day) => {
-    if (!staffName || !day) {
-      return {};
-    }
-    
-    // Get current week's Monday date
-    const weekStartDate = currentWeekState.dates[0];
-    
-    // Create the week-specific key to look up shift data
-    const weekSpecificKey = `${staffName}_${day}_${weekStartDate}`;
-    
-    // Check if we have data for this cell
-    if (shiftData[weekSpecificKey]) {
-      return shiftData[weekSpecificKey];
-    }
-    
-    // Return empty object instead of null to avoid runtime errors
-    return {};
-  }, [shiftData, currentWeekState.dates]);
-
   // Handle adding staff to the roster
   const handleAddStaff = useCallback((staffToAdd) => {
-    if (!staffToAdd || staffToAdd.length === 0) return;
+    if (!staffToAdd || (Array.isArray(staffToAdd) && staffToAdd.length === 0)) return;
     
     // Get the current week's Monday date for week-specific storage
     const currentWeekMonday = currentWeekState.dates[0];
     
-    // Extract just the names of staff being added
-    const staffNamesBeingAdded = staffToAdd.map(staff => staff.name);
+    console.log(`🧑‍💼 ADD STAFF: Adding staff to week starting ${currentWeekMonday}:`, staffToAdd);
     
-    console.log(`Adding staff ONLY to week ${currentWeekMonday}:`, staffNamesBeingAdded);
-    
-    // IMPORTANT STEP 1: Add to global staff list first (for the staff selector)
-    const globalStaffList = JSON.parse(localStorage.getItem('shiftTableStaff') || '[]');
-    let updatedGlobalStaffList = [...globalStaffList];
-    
-    // Add any new staff to the global list
-    staffNamesBeingAdded.forEach(staffName => {
-      if (!updatedGlobalStaffList.includes(staffName)) {
-        updatedGlobalStaffList.push(staffName);
-      }
-    });
-    
-    // Save updated global staff list
-    localStorage.setItem('shiftTableStaff', JSON.stringify(updatedGlobalStaffList));
-    
-    // IMPORTANT STEP 2: Update week-specific staff list
-    const staffByWeek = JSON.parse(localStorage.getItem('shiftTableStaffByWeek') || '{}');
-    
-    // Initialize array for this week if it doesn't exist
-    if (!staffByWeek[currentWeekMonday]) {
-      staffByWeek[currentWeekMonday] = [];
-    }
-    
-    // Get current list for this week
-    const currentWeekStaff = staffByWeek[currentWeekMonday];
-    
-    // Add new staff to this specific week only
-    let staffChanged = false;
-    staffNamesBeingAdded.forEach(staffName => {
-      if (!currentWeekStaff.includes(staffName)) {
-        currentWeekStaff.push(staffName);
-        staffChanged = true;
-      }
-    });
-    
-    // Save if anything changed
-    if (staffChanged) {
-      localStorage.setItem('shiftTableStaffByWeek', JSON.stringify(staffByWeek));
-      console.log(`Updated staff for week ${currentWeekMonday}:`, currentWeekStaff);
-    }
-    
-    // IMPORTANT STEP 3: Update UI for the current week only
-    setRows(currentRows => {
-      // Keep header row (index 0)
-      const headerRow = currentRows.find(row => row.id === 'row-1');
-      const addStaffRow = currentRows.find(row => row.id === 'row-2');
-      
-      // Remove add staff row temporarily
-      const contentRows = currentRows.filter(row => row.id !== 'row-1' && row.id !== 'row-2');
-      
-      // Create new rows array starting with header
-      const newRows = [headerRow];
-      
-      // Add existing rows first
-      contentRows.forEach(row => {
-        newRows.push(row);
-      });
-      
-      // Add new staff rows for this week
-      staffToAdd.forEach(staff => {
-        const stableRowId = `row-staff-${staff.name.replace(/\s+/g, '-').toLowerCase()}`;
-        
-        // Only add if not already in table
-        if (!newRows.some(row => row.id === stableRowId)) {
-          newRows.push({
-            id: stableRowId,
-            cells: [staff.name, ...Array(numColumns - 1).fill('')],
-            weekStartDate: currentWeekMonday
-          });
-        }
-      });
-      
-      // Add the Add Staff row at the end
-      newRows.push(addStaffRow);
-      
-      return newRows;
-    });
-    
-    // IMPORTANT STEP 4: Update state tracking
-    setRowStaffIDs(prev => {
-      const updatedStaffIDs = { ...prev };
-      
-      // Initialize this week's array if needed
-      if (!updatedStaffIDs[currentWeekMonday]) {
-        updatedStaffIDs[currentWeekMonday] = [];
-      }
-      
-      // Add the new staff members to this week's array
-      staffNamesBeingAdded.forEach(staffName => {
-        if (!updatedStaffIDs[currentWeekMonday].includes(staffName)) {
-          updatedStaffIDs[currentWeekMonday].push(staffName);
-        }
-      });
-      
-      return updatedStaffIDs;
-    });
-    
-    // Close the staff selector popup
-    setIsStaffSelectorOpen(false);
-    
-    // Show notification
-    setNotification(`${staffToAdd.length} staff added to THIS WEEK ONLY`);
-    
-    // Force a re-render
-    setRenderKey(prev => prev + 1);
-    
-    // Track in debug
-    updateDebugVariables({
-      ShiftTable: {
-        lastStaffAdded: {
-          value: {
-            staff: staffNamesBeingAdded,
-            week: currentWeekMonday,
-            timestamp: new Date().toLocaleTimeString()
-          },
-          lastUpdated: new Date().toLocaleTimeString(),
-          type: "object"
-        }
-      }
-    });
-  }, [currentWeekState.dates, numColumns, setIsStaffSelectorOpen, setNotification, updateDebugVariables]);
-
-  // Handle removing staff from the roster
-  const handleRemoveStaff = useCallback((staffRowId, staffName) => {
-    // Get the current week's Monday date
-    const currentWeekMonday = currentWeekState.dates[0];
-    
-    console.log(`Removing staff '${staffName}' ONLY from week ${currentWeekMonday}`);
-    
-    // STEP 1: Update UI by removing the row
-    setRows(prev => {
-      // Filter out the specific staff row to be removed
-      return prev.filter(row => row.id !== staffRowId);
-    });
-    
-    // STEP 2: Update localStorage for this week's staff
     try {
-      // Get existing staff by week
+      // Handle both single staff member or array
+      const staffMembers = Array.isArray(staffToAdd) ? staffToAdd : [{ name: staffToAdd }];
+      
+      // Extract just the names of staff being added
+      const staffNamesBeingAdded = staffMembers.map(staff => 
+        typeof staff === 'string' ? staff : staff.name
+      );
+      
+      console.log(`📋 ADD STAFF: Staff names being added to week ${currentWeekMonday}:`, staffNamesBeingAdded);
+      
+      // IMPORTANT STEP 1: Add to global staff list first (for the staff selector)
+      // This makes staff available to be added to ANY week
+      const globalStaffList = JSON.parse(localStorage.getItem('shiftTableStaff') || '[]');
+      let updatedGlobalStaffList = [...globalStaffList];
+      
+      // Add any new staff to the global list
+      staffNamesBeingAdded.forEach(staffName => {
+        if (!updatedGlobalStaffList.includes(staffName)) {
+          updatedGlobalStaffList.push(staffName);
+        }
+      });
+      
+      // Save updated global staff list
+      localStorage.setItem('shiftTableStaff', JSON.stringify(updatedGlobalStaffList));
+      console.log('🌐 ADD STAFF: Updated global staff list:', updatedGlobalStaffList);
+      
+      // IMPORTANT STEP 2: Update week-specific staff list
       const staffByWeek = JSON.parse(localStorage.getItem('shiftTableStaffByWeek') || '{}');
       
-      // Ensure an array exists for this week
+      // Initialize array for this week if it doesn't exist
       if (!staffByWeek[currentWeekMonday]) {
         staffByWeek[currentWeekMonday] = [];
       }
       
-      // Remove the staff from this week only
-      staffByWeek[currentWeekMonday] = staffByWeek[currentWeekMonday].filter(name => name !== staffName);
+      // Get current list for this week
+      const currentWeekStaff = staffByWeek[currentWeekMonday];
       
-      // Save back to localStorage
-      localStorage.setItem('shiftTableStaffByWeek', JSON.stringify(staffByWeek));
-      
-      console.log(`Staff removed from week ${currentWeekMonday}. Remaining staff:`, staffByWeek[currentWeekMonday]);
-    } catch (error) {
-      console.error('Error updating staff by week when removing staff:', error);
-    }
-    
-    // STEP 3: Update state tracking
-    setRowStaffIDs(prev => {
-      const updated = { ...prev };
-      
-      // Ensure an array exists for this week
-      if (!updated[currentWeekMonday]) {
-        updated[currentWeekMonday] = [];
-      }
-      
-      // Remove the staff from this week only
-      updated[currentWeekMonday] = updated[currentWeekMonday].filter(name => name !== staffName);
-      
-      return updated;
-    });
-    
-    // STEP 4: Remove all shifts for this staff in this week
-    setShiftData(prev => {
-      const updatedShiftData = { ...prev };
-      
-      // Find all shifts for this staff in this week
-      Object.keys(updatedShiftData).forEach(key => {
-        // Key format is: staffName_day_weekStartDate
-        if (key.startsWith(`${staffName}_`) && key.endsWith(`_${currentWeekMonday}`)) {
-          delete updatedShiftData[key];
-          console.log(`Removed shift data: ${key}`);
+      // Add new staff to this specific week only
+      let staffChanged = false;
+      staffNamesBeingAdded.forEach(staffName => {
+        if (!currentWeekStaff.includes(staffName)) {
+          currentWeekStaff.push(staffName);
+          staffChanged = true;
+        } else {
+          console.warn(`⚠️ ADD STAFF: "${staffName}" is already in the table for week ${currentWeekMonday}`);
         }
       });
       
-      return updatedShiftData;
-    });
-    
-    // Display notification
-    setNotification(`${staffName} removed from THIS WEEK ONLY`);
-    
-    // Force a re-render
-    setRenderKey(prev => prev + 1);
-    
-    // Track in debug
-    updateDebugVariables({
-      ShiftTable: {
-        lastStaffRemoved: {
-          value: {
-            staff: staffName,
-            week: currentWeekMonday,
-            timestamp: new Date().toLocaleTimeString()
-          },
-          lastUpdated: new Date().toLocaleTimeString(),
-          type: "object"
-        }
+      // Save if anything changed
+      if (staffChanged) {
+        localStorage.setItem('shiftTableStaffByWeek', JSON.stringify(staffByWeek));
+        console.log(`✅ ADD STAFF: Updated staff for week ${currentWeekMonday}:`, currentWeekStaff);
       }
-    });
-  }, [currentWeekState.dates, setNotification, updateDebugVariables]);
-
+      
+      // IMPORTANT STEP 3: Update UI for the current week only
+      setRows(currentRows => {
+        // Keep header row
+        const headerRow = currentRows.find(row => row.id === 'row-1');
+        const addStaffRow = currentRows.find(row => row.id === 'row-2');
+        
+        // Remove add staff row temporarily
+        const contentRows = currentRows.filter(row => row.id !== 'row-1' && row.id !== 'row-2');
+        
+        // Create new rows array starting with header
+        const newRows = [headerRow];
+        
+        // Add existing rows first
+        contentRows.forEach(row => {
+          newRows.push(row);
+        });
+        
+        // Add new staff rows for this week
+        staffNamesBeingAdded.forEach(staffName => {
+          const stableRowId = `row-staff-${staffName.replace(/\s+/g, '-').toLowerCase()}`;
+          
+          // Only add if not already in table
+          if (!newRows.some(row => row.id === stableRowId)) {
+            newRows.push({
+              id: stableRowId,
+              cells: [staffName, ...Array(numColumns - 1).fill('')],
+              weekStartDate: currentWeekMonday // CRITICAL: Explicitly tag with current week
+            });
+          }
+        });
+        
+        // Add the Add Staff row at the end
+        newRows.push(addStaffRow);
+        
+        return newRows;
+      });
+      
+      // Close the staff selector popup
+      setIsStaffSelectorOpen(false);
+      
+      // Show notification
+      setNotification(`${staffNamesBeingAdded.length} staff added to THIS WEEK ONLY`);
+      
+      // Force a re-render
+      setRenderKey(prev => prev + 1);
+      
+      // Track in debug
+      updateDebugVariables({
+        ShiftTable: {
+          lastStaffAdded: {
+            value: {
+              staff: staffNamesBeingAdded,
+              week: currentWeekMonday,
+              timestamp: new Date().toLocaleTimeString()
+            },
+            lastUpdated: new Date().toLocaleTimeString(),
+            type: "object"
+          }
+        }
+      });
+      
+      console.log(`🔄 ADD STAFF: Completed adding staff to week ${currentWeekMonday}`);
+    } catch (error) {
+      console.error('❌ ADD STAFF: Error adding staff:', error);
+      setNotification(`Error adding staff: ${error.message}`);
+    }
+  }, [currentWeekState.dates, numColumns, setIsStaffSelectorOpen, setNotification, updateDebugVariables]);
+  
   // Handle click on a shift cell
   const handleShiftCellClick = useCallback((rowIndex, colIndex, staffName, day) => {
     // Skip header and first column
@@ -931,6 +832,88 @@ function ShiftTable() {
       setNotification(`Shift removed for ${staffName} on ${day}`);
     }
   }, [currentWeekState.dates, handleShiftChange, setNotification]);
+
+  // Handle removing staff from the roster
+  const handleRemoveStaff = useCallback((staffRowId, staffName) => {
+    // Get the current week's Monday date
+    const currentWeekMonday = currentWeekState.dates[0];
+    
+    console.log(`🗑️ REMOVE STAFF: Removing '${staffName}' ONLY from week ${currentWeekMonday}`);
+    
+    // STEP 1: Update UI by removing the row
+    setRows(prev => {
+      // Filter out the specific staff row to be removed
+      return prev.filter(row => row.id !== staffRowId);
+    });
+    
+    // STEP 2: Update the week-specific staff list in localStorage
+    try {
+      const staffByWeek = JSON.parse(localStorage.getItem('shiftTableStaffByWeek') || '{}');
+      
+      console.log(`📊 REMOVE STAFF: Current staffByWeek data:`, staffByWeek);
+      
+      // Remove staff from this week's list only
+      if (staffByWeek[currentWeekMonday]) {
+        staffByWeek[currentWeekMonday] = staffByWeek[currentWeekMonday].filter(name => name !== staffName);
+        
+        // Save updated staff by week data
+        localStorage.setItem('shiftTableStaffByWeek', JSON.stringify(staffByWeek));
+        console.log(`✅ REMOVE STAFF: Removed '${staffName}' from week ${currentWeekMonday}`);
+        console.log(`📊 REMOVE STAFF: Updated week data:`, staffByWeek[currentWeekMonday]);
+      }
+    } catch (error) {
+      console.error('❌ REMOVE STAFF: Error updating staff by week data:', error);
+    }
+    
+    // STEP 3: Remove shift data for this staff in this week
+    try {
+      const shiftDataCopy = { ...shiftData };
+      let shiftsRemoved = 0;
+      
+      // Find and remove all shifts for this staff in this week
+      Object.keys(shiftDataCopy).forEach(key => {
+        // Key format is: staffName_day_weekStartDate
+        if (key.startsWith(`${staffName}_`) && key.endsWith(`_${currentWeekMonday}`)) {
+          delete shiftDataCopy[key];
+          shiftsRemoved++;
+          console.log(`🗑️ REMOVE STAFF: Removed shift data for ${key}`);
+        }
+      });
+      
+      // Update state and localStorage
+      setShiftData(shiftDataCopy);
+      localStorage.setItem('shiftTableShiftData', JSON.stringify(shiftDataCopy));
+      console.log(`✅ REMOVE STAFF: Removed ${shiftsRemoved} shifts for ${staffName} in week ${currentWeekMonday}`);
+    } catch (error) {
+      console.error('❌ REMOVE STAFF: Error removing shift data:', error);
+    }
+    
+    // STEP 4: Force re-render to update UI
+    setRenderKey(prev => {
+      console.log('🔄 REMOVE STAFF: Incrementing renderKey to force refresh');
+      return prev + 1;
+    });
+    
+    // STEP 5: Show notification
+    setNotification(`Removed ${staffName} from THIS WEEK ONLY`);
+    
+    // Track in debug
+    updateDebugVariables({
+      ShiftTable: {
+        lastStaffRemoved: {
+          value: {
+            staff: staffName,
+            week: currentWeekMonday,
+            timestamp: new Date().toLocaleTimeString()
+          },
+          lastUpdated: new Date().toLocaleTimeString(),
+          type: "object"
+        }
+      }
+    });
+    
+    console.log(`🔄 REMOVE STAFF: Completed removal of ${staffName} from week ${currentWeekMonday}`);
+  }, [currentWeekState.dates, shiftData, setShiftData, updateDebugVariables]);
 
   // Helper functions to check frozen state
   const isElementFrozen = useCallback((element) => {

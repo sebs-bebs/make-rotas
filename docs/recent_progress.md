@@ -296,6 +296,73 @@
      ✓ Only one content tab active at once
      ```
 
+### Week-Specific Staff Assignment Challenge (2025-03-15)
+
+1. **Issue Overview**
+   - Attempted to implement staff assignment that's specific to each week
+   - Goal: Staff members should only appear in tables for weeks they are assigned to
+   - Challenge: Modifications caused bugs including staff rows appearing in wrong order
+   - Discarded changes due to unstable behavior
+
+2. **Problem Breakdown**
+   - **Data Structure Issues**
+     - Need separate storage for global staff list vs. week-specific assignments
+     - Week-specific data requires indexed storage by weekStartDate
+     - Staff IDs vs. Staff Names inconsistency in different components
+   
+   - **Component Communication Challenges**
+     - ShiftTable component needs to pass current week to StaffSelector
+     - StaffSelector needs to filter based on both current table and week-specific assignments
+     - Inconsistency between staffNamesInTable and currentStaffIds parameters
+   
+   - **UI Rendering Issues**
+     - Proper ordering of header row, staff rows, and "Add Staff" row
+     - Ensuring "Add Staff" button appears at the bottom of the table
+     - Maintaining proper ordering when staff are added or removed
+
+   - **State Management Complexities**
+     - Multiple useEffect hooks managing the same state in different ways
+     - Competing state updates causing rendering issues
+     - Week navigation affecting staff display
+
+3. **Future Implementation Approach**
+   - **Simplified Data Structure**
+     ```javascript
+     // Single source of truth for staff by week
+     shiftTableStaffByWeek: {
+       "2025-03-10": ["Staff Name 1", "Staff Name 2"],
+       "2025-03-17": ["Staff Name 3"]
+     }
+     ```
+
+   - **Clear Component Responsibilities**
+     - ShiftTable: Manage week-specific staff display and data
+     - StaffSelector: Filter available staff based on week-specific assignments
+     - Create helper functions for consistent data access patterns
+
+   - **Rendering Strategy**
+     - Always render header row first (id: 'row-1')
+     - Then render staff rows with stable IDs
+     - Always render "Add Staff" row last (id: 'row-2')
+     - Maintain clear separation of these row types
+
+   - **Unified State Management**
+     - Single source of truth for staff assignments
+     - Consolidated useEffect for loading week-specific data
+     - Clear dependency chains to prevent race conditions
+
+4. **Debugging Approach**
+   - Log the structure of rows array before and after modifications
+   - Track the weekStartDate being used in each component
+   - Verify localStorage data structure matches expectations
+   - Monitor staff filtering logic to ensure proper exclusions
+
+5. **Testing Strategy**
+   - Step 1: Create multiple weeks with different staff
+   - Step 2: Navigate between weeks and verify correct staff appear
+   - Step 3: Add/remove staff and verify week-specific behavior
+   - Step 4: Refresh page and verify persistence
+
 ### Latest Implementation (2025-01-28 06:40 UTC)
 1. **Debug View Improvements**
    - Modified Debug View to always show all valid components
