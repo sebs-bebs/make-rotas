@@ -1,5 +1,5 @@
 // This file creates a simple table component
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDebug } from './Debug/DebugContext';
 import { useDate } from '../context/DateContext';
 import { useStaffDetail } from '../context/StaffDetailContext';
@@ -8,11 +8,15 @@ import StaffSelector from './StaffSelector';
 import RemoveButton from './RemoveButton';
 import ShiftSlot from './ShiftSlot';
 import ShiftEditor from './ShiftEditor'; // Import the ShiftEditor component
+import SkeletonLoader from './SkeletonLoader';
 
 function ShiftTable() {
   const { currentDate, getCurrentMonday, getMondayOfWeek, getWeekDates, currentWeek } = useDate();
   const { updateDebugVariables, debugVariables } = useDebug();
   const { getStaffMember } = useStaffDetail();
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   // Track week offset from current week
   const [weekOffset, setWeekOffset] = useState(0);
@@ -507,9 +511,9 @@ function ShiftTable() {
     
     try {
       // Load all shift data from localStorage
-      const savedShiftData = localStorage.getItem('shiftTableShiftData');
+      const savedShiftData = JSON.parse(localStorage.getItem('shiftTableShiftData') || '{}');
       if (savedShiftData) {
-        setShiftData(JSON.parse(savedShiftData));
+        setShiftData(savedShiftData);
       }
     } catch (error) {
       console.error(' Error loading initial shift data:', error);
@@ -775,7 +779,7 @@ function ShiftTable() {
       setNotification(`Error adding staff: ${error.message}`);
     }
   }, [currentWeekState.dates, numColumns, setIsStaffSelectorOpen, setNotification, updateDebugVariables]);
-  
+
   // Handle click on a shift cell
   const handleShiftCellClick = useCallback((rowIndex, colIndex, staffName, day) => {
     // Skip header and first column
@@ -1024,6 +1028,7 @@ function ShiftTable() {
         // Key format is: staffName_day_weekStartDate
         // We need to check if it has the current week's Monday date at the end
         const parts = key.split('_');
+        
         return parts.length >= 3 && parts[parts.length - 1] === currentWeekMonday;
       });
       
@@ -1165,7 +1170,7 @@ function ShiftTable() {
     console.log('DEBUG: Staff with shifts:', staffWithShifts);
   }, [currentStaffIds, rows, shiftData, currentWeekState.dates]);
 
-  // Render a cell based on its content and position
+  // Memoize the renderCell function to prevent recreating it on every render
   const renderCell = useCallback((cell, rowIndex, colIndex) => {
     const row = rows[rowIndex];
     const isFirstRow = rowIndex === 0;
@@ -1211,12 +1216,138 @@ function ShiftTable() {
     );
   }, [rows, handleAddStaffClick, handleShiftChange, shiftData, currentWeekState.dates, renderKey]);
 
+  // Scroll position state
+  const tableContainerRef = useRef(null);
+  const [visibleStartIndex, setVisibleStartIndex] = useState(1); // Start after header row (only 1 header row)
+  const [visibleRowCount, setVisibleRowCount] = useState(20);
+  const [rowHeight, setRowHeight] = useState(50); // Default row height
+
   // State for shift editor
   const [isShiftEditorOpen, setShiftEditorOpen] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
 
+  // Calculate visible rows without creating dependencies issues
+  function calculateVisibleRows() {
+    if (!rows || rows.length === 0) return [];
+    
+    const visibleRows = [];
+    
+    // Add header row (always visible)
+    if (rows.length > 0 && rows[0]) {
+      visibleRows.push({ row: rows[0], virtualIndex: 0 });
+    }
+    
+    // Then add actual data rows based on scroll position
+    const startIdx = Math.max(1, visibleStartIndex); // Start after header row
+    const endIdx = Math.min(startIdx + visibleRowCount, rows.length);
+    
+    for (let i = startIdx; i < endIdx; i++) {
+      if (rows[i]) {
+        visibleRows.push({ row: rows[i], virtualIndex: i });
+      }
+    }
+    
+    return visibleRows;
+  }
+
+  // Handle scroll events for virtualization
+  const handleScroll = useCallback(() => {
+    if (tableContainerRef.current) {
+      const scrollTop = tableContainerRef.current.scrollTop;
+      // Start at 1 to skip the single header row
+      const newStartIndex = Math.max(1, Math.floor(scrollTop / rowHeight));
+      setVisibleStartIndex(newStartIndex);
+    }
+  }, [rowHeight]);
+
+  // Memoize the visible rows to prevent recalculation on every render
+  const visibleRows = useMemo(() => calculateVisibleRows(), [rows, visibleStartIndex, visibleRowCount]);
+
+  // Setup scroll event listener
+  useEffect(() => {
+    const containerRef = tableContainerRef.current;
+    if (containerRef) {
+      containerRef.addEventListener('scroll', handleScroll);
+      return () => {
+        containerRef.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [handleScroll]);
+
+  // Calculate visible row count based on container height
+  useEffect(() => {
+    if (tableContainerRef.current) {
+      const containerHeight = tableContainerRef.current.clientHeight;
+      const visibleRows = Math.ceil(containerHeight / rowHeight) + 2; // Add buffer
+      setVisibleRowCount(visibleRows);
+    }
+  }, [rowHeight]);
+
+  // Set loading state with initial data load
+  useEffect(() => {
+    // Start with loading state
+    setIsLoading(true);
+    
+    // Simulate loading delay based on amount of data
+    // In a real app, this would be the actual data loading time
+    const delay = rows.length > 30 ? 800 : 300;
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, delay);
+    
+    return () => clearTimeout(timer);
+  }, [weekOffset]); // Re-trigger when changing weeks
+
+  // Render skeleton loader during loading
+  if (isLoading) {
+    return (
+      <div className="flex-1">
+        {/* Navigation Controls */}
+        <div className="flex gap-2 mb-4">
+          <SkeletonLoader type="button" />
+          <SkeletonLoader type="button" />
+          <SkeletonLoader type="button" />
+        </div>
+        
+        {/* Table Container */}
+        <div className="mt-4 relative">
+          <div 
+            className="overflow-x-auto overflow-y-auto border rounded-lg shadow-sm bg-white"
+            style={{ maxHeight: '35rem' }}
+          >
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="sticky top-0 bg-white z-10">
+                <tr>
+                  {Array(8).fill().map((_, i) => (
+                    <th key={i} className="p-2 border">
+                      <SkeletonLoader type="cell" className="h-6" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array(10).fill().map((_, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {Array(8).fill().map((_, colIndex) => (
+                      <td key={colIndex} className="border p-2">
+                        <SkeletonLoader 
+                          type={colIndex === 0 ? "text" : "cell"} 
+                          className={colIndex === 0 ? "h-6" : "h-10"} 
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 overflow-x-auto">
+    <div className="flex-1">
       {/* Navigation Controls */}
       <div className="flex gap-2 mb-4">
         <button 
@@ -1241,27 +1372,47 @@ function ShiftTable() {
       
       {/* Table Container */}
       <div className="mt-4 relative">
-        <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+        <div 
+          ref={tableContainerRef} 
+          className="overflow-x-auto overflow-y-auto border rounded-lg shadow-sm bg-white"
+          style={{ maxHeight: '35rem' }} // 560px equivalent in rem
+          onScroll={handleScroll}
+        >
           <table className="min-w-full divide-y divide-gray-200">
+            <thead className="sticky top-0 bg-white z-10">
+              <tr data-row-index={0} className="relative">
+                {rows[0]?.cells.map((cell, colIndex) => renderCell(cell, 0, colIndex))}
+                <td key="header-action" className="border p-2">ACTIONS</td>
+              </tr>
+            </thead>
             <tbody>
-              {rows.map((row, rowIndex) => (
-                <tr key={row.id} className="relative" data-row-index={rowIndex}>
-                  {row.cells.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))}
+              {/* Top spacer row */}
+              {visibleStartIndex > 1 && (
+                <tr style={{ height: (visibleStartIndex - 1) * rowHeight }} />
+              )}
+              
+              {/* Visible rows */}
+              {visibleRows.map(({ row, virtualIndex }) => (
+                <tr key={row.id} className="relative" data-row-index={virtualIndex} style={{ height: rowHeight }}>
+                  {row.cells.map((cell, colIndex) => renderCell(cell, virtualIndex, colIndex))}
                   {/* Actions column with Remove button */}
                   <td
                     key={`${row.id}-action`}
                     className="border p-2"
                   >
-                    {rowIndex === 0 ? (
-                      'ACTIONS'
-                    ) : row.id === 'row-2' ? (
+                    {row.id === 'row-2' ? (
                       ''
                     ) : (
-                      <RemoveButton onRemove={() => handleRemoveStaff(row.id, rows[rowIndex].cells[0])} />
+                      <RemoveButton onRemove={() => handleRemoveStaff(row.id, row.cells[0])} />
                     )}
                   </td>
                 </tr>
               ))}
+              
+              {/* Bottom spacer row */}
+              {rows.length > (visibleStartIndex + visibleRowCount) && (
+                <tr style={{ height: (rows.length - visibleStartIndex - visibleRowCount) * rowHeight }} />
+              )}
             </tbody>
           </table>
         </div>
@@ -1279,7 +1430,10 @@ function ShiftTable() {
         isOpen={isStaffSelectorOpen}
         onClose={() => setIsStaffSelectorOpen(false)}
         onAddStaff={handleAddStaff}
-        currentStaffIds={staffNamesInTable}
+        currentStaffIds={rows
+          .filter(row => row.id !== 'row-1' && row.id !== 'row-2')
+          .map(row => row.cells[0])
+        }
       />
       
       {/* Shift Editor */}
