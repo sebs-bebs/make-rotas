@@ -426,7 +426,7 @@ Added a `<thead>` section with empty header cells without being explicitly asked
 
 ### Resolution Steps
 1. Remove the `<thead>` section
-2. Move sticky header functionality to first row of tbody
+2. Keep only the requested Add button visibility toggle
 3. Wait for explicit request to add headers
 
 ### Prevention
@@ -1382,6 +1382,437 @@ When navigating between weeks in the ShiftTable component, shift data (start tim
 - `src/components/ShiftSlot.js`
 - `src/components/StaffList.js`
 
+## Staff List Component
+
+### 1. Duplicate Row Bug (2025-01-27)
+**Issue**: After adding a staff member, two rows would appear instead of one empty input row.
+
+**Root Cause**: 
+- The component was maintaining a base empty row in the `rows` state
+- When adding a staff member, it was also adding another empty row if it was the last row
+- This resulted in duplicate rows being displayed
+
+**Fix**:
+- Removed the automatic row addition after staff member creation
+- Maintained input values in state instead of clearing them
+- Added proper local storage tracking of staff data
+- Added debug variables to track staff state
+
+### 2. Input Value Display (2025-01-27)
+**Issue**: Input values were not being displayed after fixing the duplicate row bug.
+
+**Root Cause**:
+- The fix for duplicate rows was clearing input values from state using `delete`
+- This caused the input fields to lose their values
+
+**Fix**:
+- Maintained input values in state by not deleting them
+- Added proper local storage of staff data
+- Added debug tracking for:
+  - Current input values
+  - Stored staff members
+  - Staff count
+  - Button states
+
+## [2025-01-27] Debug View Numbered Sections - Poor Analysis and Fix
+
+### Bug Description
+Unwanted numbered sections (1 to 11) appearing in the Debug View
+
+### Initial Poor Analysis
+1. **Misdiagnosis**: Initially thought the issue was coming from example components
+2. **Wrong Action**: Moved example files to a different directory
+3. **Failed Solution**: Tried to fix by adding a component whitelist without proper analysis
+
+### Impact of Poor Analysis
+1. Broke ShiftTable debugging functionality
+2. Made unnecessary file movements
+3. Added complexity without solving the root issue
+
+### Correct Analysis Needed
+1. Should have checked how debug variables are being rendered
+2. Should have analyzed the relationship between components
+3. Should have tested impact on all components before making changes
+
+### Proper Fix Required
+1. Need to understand why numbered sections appear
+2. Must preserve all essential debug information
+3. Should maintain visibility for all main components:
+   - ShiftTable (shift management)
+   - StaffList (staff information)
+   - StaffDetail (detailed staff data)
+   - TabNavigation (navigation state)
+
+### Code Explanation for Non-Coders
+The Debug View is like a special window that shows us what's happening inside our app. Think of it as a control panel with different sections:
+
+1. **What We See**: 
+   - Different sections with component names (like "ShiftTable", "StaffList")
+   - Each section shows important information about that part of the app
+   - Some sections have numbers (1 to 11) that we don't want
+
+2. **What We Changed**:
+   - Added a list of allowed sections (like a guest list for a party)
+   - But accidentally left out an important guest (ShiftTable)
+   - This made ShiftTable's information disappear from our control panel
+
+3. **What We Need to Fix**:
+   - Add ShiftTable back to our "allowed list"
+   - Keep all the important information visible
+   - Remove only the unwanted numbered sections
+
+## Figma Design Integration - Server Connection Error
+**Date:** 2025-03-03
+**Component:** FigmaDesign.js
+
+### Issue Description
+The Figma design integration was failing with a "Failed to fetch" error when the Figma MCP server was not running. This created a poor user experience as the component would display an error message instead of gracefully handling the missing server.
+
+### Root Cause
+- The component was designed with the assumption that the Figma MCP server would always be running
+- It attempted to fetch design data on component mount without properly checking server availability
+- The error handling was focused on API errors rather than connection errors
+- The component didn't have a proper fallback mechanism for when the server was unavailable
+
+```jsx
+// Previous implementation with poor error handling
+useEffect(() => {
+  const fetchDesignData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchFigmaNode(fileKey, nodeId);
+      setDesignData(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching Figma design:', err);
+      setError(err);
+      setLoading(false);
+    }
+  };
+
+  fetchDesignData();
+}, []);
+```
+
+### Solution
+1. Added server status checking before attempting to fetch design data
+2. Changed the default loading state to `false` to prevent unnecessary loading indicators
+3. Updated the error UI to be more user-friendly with a yellow warning instead of a red error
+4. Implemented a comprehensive fallback design that displays when the server is unavailable
+5. Added clear documentation about the optional nature of the Figma MCP server
+
+```jsx
+// Improved implementation with server status check and fallback
+const [serverStatus, setServerStatus] = useState('not-running'); // Default to not-running
+
+// Check if the Figma MCP server is running
+useEffect(() => {
+  const checkServerStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:3333/');
+      if (response.ok) {
+        setServerStatus('running');
+      } else {
+        setServerStatus('error');
+      }
+    } catch (err) {
+      console.error('Error checking Figma MCP server status:', err);
+      setServerStatus('not-running');
+    }
+  };
+
+  checkServerStatus();
+}, []);
+
+// Only fetch design data if server is running
+useEffect(() => {
+  const fetchDesignData = async () => {
+    if (serverStatus !== 'running') {
+      return; // Don't try to fetch if server isn't running
+    }
+    
+    // Fetch logic here...
+  };
+
+  fetchDesignData();
+}, [serverStatus]);
+```
+
+### User Experience Improvements
+1. **Clear Status Indication:**
+   - Yellow warning message when server is not running
+   - Informative text explaining the situation
+   - No technical jargon or error codes
+
+2. **Fallback Design:**
+   - Implemented a visually appealing fallback design
+   - Maintains the same general layout and functionality
+   - Clearly indicates it's a sample/fallback design
+
+3. **Debug Integration:**
+   - Added server status to debug variables
+   - Maintained all existing debug information
+   - Added more context to error messages
+
+### Documentation Updates
+1. Updated feature.md to clarify that the Figma MCP server is optional
+2. Created figma_mcp_setup.md with detailed setup instructions
+3. Updated component comments to explain the fallback mechanism
+
+### Lessons Learned
+1. **Graceful Degradation:**
+   - Always implement fallback mechanisms for external dependencies
+   - Design components to work without optional services
+   - Provide clear user feedback when services are unavailable
+
+2. **Error Handling:**
+   - Distinguish between different types of errors (connection vs. API)
+   - Use appropriate visual indicators for different error severities
+   - Provide helpful context and next steps in error messages
+
+3. **Documentation:**
+   - Clearly document optional dependencies
+   - Provide setup instructions for external services
+   - Explain fallback behaviors
+
+## ShiftTable - Disappearing Shifts When Changing Weeks
+**Date:** 2025-03-13
+**Component:** ShiftTable.js, ShiftSlot.js
+**Type:** Data Persistence Issue
+
+### Issue Description
+When navigating between weeks in the ShiftTable component, shift data (start times and end times) was disappearing even though it should persist across week changes:
+
+1. **Core Issues**:
+   - Shifts would disappear when switching to a different week and returning
+   - Staff rows were being recreated with new IDs when changing weeks
+   - Shift data was not properly stored and retrieved from localStorage
+
+2. **Contributing Factors**:
+   - Non-stable row IDs led to a disconnect between shift data and displayed slots
+   - ShiftSlot component not properly handling empty/null data
+   - Return of null instead of empty objects in the getShiftForCell function
+   - Missing proper key structure in localStorage for week-specific data
+
+### Root Cause Analysis
+1. **Row ID Instability**:
+   - Row IDs were generated using `Date.now()` creating new IDs every time rows were re-rendered
+   - This prevented ShiftSlots from maintaining a consistent reference to their data
+
+2. **Inconsistent Data Handling**:
+   - The `getShiftForCell` function returned null when no data was found
+   - ShiftSlot component didn't properly handle null data, leading to rendering issues
+
+3. **Lack of Immediate Persistence**:
+   - Shift data wasn't being immediately saved to localStorage
+   - This led to data loss when navigating between weeks
+
+### Solution
+1. **Implement Stable Row IDs**:
+   ```javascript
+   // Before: Using unstable timestamp-based IDs
+   const newRowId = `row-${Date.now()}-${staff.id}`;
+   
+   // After: Creating stable IDs based on staff name
+   const stableRowId = `row-staff-${staff.name.replace(/\s+/g, '-').toLowerCase()}`;
+   ```
+
+2. **Return Empty Objects Instead of Null**:
+   ```javascript
+   // Before: Returning null when no shift data found
+   return null;
+   
+   // After: Returning empty object instead of null
+   return {};
+   ```
+
+3. **Enhance ShiftSlot Data Handling**:
+   ```javascript
+   // Before: Not properly handling null data
+   setStartTime(shiftData?.startTime || '');
+   setEndTime(shiftData?.endTime || '');
+   
+   // After: Explicit conditional handling of data
+   if (shiftData && (shiftData.startTime || shiftData.endTime)) {
+     // We have actual shift data - show it
+     setStartTime(shiftData.startTime || '');
+     setEndTime(shiftData.endTime || '');
+   } else {
+     // No shift data for this cell - clear the times
+     setStartTime('');
+     setEndTime('');
+   }
+   ```
+
+4. **Immediate localStorage Persistence**:
+   ```javascript
+   // Immediately save to localStorage to prevent data loss
+   localStorage.setItem('shiftTableShiftData', JSON.stringify(updatedShiftData));
+   ```
+
+5. **Force Re-rendering When Needed**:
+   ```javascript
+   // Force re-render to ensure data is displayed correctly
+   setRenderKey(prev => prev + 1);
+   ```
+
+### Lessons Learned
+1. **Stable Identifiers**:
+   - Always use stable, content-based IDs for row elements instead of timestamps
+   - Ensure elements that need to maintain state across renders have consistent identifiers
+
+2. **Consistent Data Patterns**:
+   - Return empty objects rather than null for missing data
+   - Handle null, undefined, and empty cases explicitly
+
+3. **Debug-First Approach**:
+   - Include detailed logging to trace data flow
+   - Log the exact keys being used for localStorage operations
+
+4. **Data Persistence Strategy**:
+   - Save to localStorage immediately when data changes
+   - Use explicit keys that include all necessary context (staff, day, week)
+
+### Prevention Strategies
+1. **Code Reviews**:
+   - Check for stable identifiers in list components
+   - Verify proper handling of null/undefined values
+   - Ensure consistent data patterns across components
+
+2. **Testing**:
+   - Test navigation between weeks to ensure data persists
+   - Verify data is correctly saved to and retrieved from localStorage
+   - Check that UI elements correctly display data after state changes
+
+3. **Documentation**:
+   - Document data flow between components
+   - Note critical dependencies and assumptions
+   - Maintain clear localStorage schema documentation
+
+### Related Files
+- `src/components/ShiftTable.js`
+- `src/components/ShiftSlot.js`
+- `src/components/StaffList.js`
+
+## ShiftTable - Disappearing Shifts When Changing Weeks - Documentation
+**Date:** 2025-03-13
+**Component:** ShiftTable.js, ShiftSlot.js
+**Type:** Data Persistence Issue
+
+### Issue Description
+When navigating between weeks in the ShiftTable component, shift data (start times and end times) was disappearing even though it should persist across week changes:
+
+1. **Core Issues**:
+   - Shifts would disappear when switching to a different week and returning
+   - Staff rows were being recreated with new IDs when changing weeks
+   - Shift data was not properly stored and retrieved from localStorage
+
+2. **Contributing Factors**:
+   - Non-stable row IDs led to a disconnect between shift data and displayed slots
+   - ShiftSlot component not properly handling empty/null data
+   - Return of null instead of empty objects in the getShiftForCell function
+   - Missing proper key structure in localStorage for week-specific data
+
+### Root Cause Analysis
+1. **Row ID Instability**:
+   - Row IDs were generated using `Date.now()` creating new IDs every time rows were re-rendered
+   - This prevented ShiftSlots from maintaining a consistent reference to their data
+
+2. **Inconsistent Data Handling**:
+   - The `getShiftForCell` function returned null when no data was found
+   - ShiftSlot component didn't properly handle null data, leading to rendering issues
+
+3. **Lack of Immediate Persistence**:
+   - Shift data wasn't being immediately saved to localStorage
+   - This led to data loss when navigating between weeks
+
+### Solution
+1. **Implement Stable Row IDs**:
+   ```javascript
+   // Before: Using unstable timestamp-based IDs
+   const newRowId = `row-${Date.now()}-${staff.id}`;
+   
+   // After: Creating stable IDs based on staff name
+   const stableRowId = `row-staff-${staff.name.replace(/\s+/g, '-').toLowerCase()}`;
+   ```
+
+2. **Return Empty Objects Instead of Null**:
+   ```javascript
+   // Before: Returning null when no shift data found
+   return null;
+   
+   // After: Returning empty object instead of null
+   return {};
+   ```
+
+3. **Enhance ShiftSlot Data Handling**:
+   ```javascript
+   // Before: Not properly handling null data
+   setStartTime(shiftData?.startTime || '');
+   setEndTime(shiftData?.endTime || '');
+   
+   // After: Explicit conditional handling of data
+   if (shiftData && (shiftData.startTime || shiftData.endTime)) {
+     // We have actual shift data - show it
+     setStartTime(shiftData.startTime || '');
+     setEndTime(shiftData.endTime || '');
+   } else {
+     // No shift data for this cell - clear the times
+     setStartTime('');
+     setEndTime('');
+   }
+   ```
+
+4. **Immediate localStorage Persistence**:
+   ```javascript
+   // Immediately save to localStorage to prevent data loss
+   localStorage.setItem('shiftTableShiftData', JSON.stringify(updatedShiftData));
+   ```
+
+5. **Force Re-rendering When Needed**:
+   ```javascript
+   // Force re-render to ensure data is displayed correctly
+   setRenderKey(prev => prev + 1);
+   ```
+
+### Lessons Learned
+1. **Stable Identifiers**:
+   - Always use stable, content-based IDs for row elements instead of timestamps
+   - Ensure elements that need to maintain state across renders have consistent identifiers
+
+2. **Consistent Data Patterns**:
+   - Return empty objects rather than null for missing data
+   - Handle null, undefined, and empty cases explicitly
+
+3. **Debug-First Approach**:
+   - Include detailed logging to trace data flow
+   - Log the exact keys being used for localStorage operations
+
+4. **Data Persistence Strategy**:
+   - Save to localStorage immediately when data changes
+   - Use explicit keys that include all necessary context (staff, day, week)
+
+### Prevention Strategies
+1. **Code Reviews**:
+   - Check for stable identifiers in list components
+   - Verify proper handling of null/undefined values
+   - Ensure consistent data patterns across components
+
+2. **Testing**:
+   - Test navigation between weeks to ensure data persists
+   - Verify data is correctly saved to and retrieved from localStorage
+   - Check that UI elements correctly display data after state changes
+
+3. **Documentation**:
+   - Document data flow between components
+   - Note critical dependencies and assumptions
+   - Maintain clear localStorage schema documentation
+
+### Related Files
+- `src/components/ShiftTable.js`
+- `src/components/ShiftSlot.js`
+- `src/components/StaffList.js`
+
 ## Staff Selection Popup - Duplicate Staff Display
 **Date:** 2025-03-15
 **Component:** ShiftTable.js, StaffSelector.js
@@ -1459,3 +1890,220 @@ const filteredStaff = activeStaff.filter(staff => !currentStaffIds.includes(staf
 - `src/components/ShiftTable.js`
 - `src/components/StaffSelector.js`
 - `src/context/StaffDetailContext.js`
+
+## ShiftTable - Duplicate Headers Display Issue
+**Date:** 2025-03-16
+**Component:** ShiftTable.js
+**Type:** UI Display Bug
+
+### Issue Description
+The ShiftTable component was displaying the days of the week twice in the table:
+1. First in the proper `<thead>` section as expected
+2. Then again in the first row of the `<tbody>` section
+
+This created visual confusion with redundant information and affected the table's usability.
+
+### Root Cause Analysis
+The issue stemmed from multiple interconnected problems:
+
+1. **Data Structure Issues**:
+   - A staff entry with the name "STAFF" was being included in the staff data
+   - This entry was being rendered in the table, creating a row that looked similar to the header
+
+2. **Virtualization Logic Problems**:
+   - The table's virtualization system was explicitly including the header row (index 0) in both:
+     - The `<thead>` section (intended location)
+     - The calculated `visibleRows` array which populates the `<tbody>`
+   - This duplication meant the header content was rendered twice
+
+3. **Row Filtering Gaps**:
+   - No filtering was in place to prevent rows with duplicate header-like content
+   - The virtualization logic didn't distinguish between header rows and content rows
+
+### Solution
+
+The solution involved a two-pronged approach:
+
+1. **Data Structure Fix**:
+   ```javascript
+   // Filter out any staff entries named "STAFF" to prevent duplicate header-like rows
+   const staffRows = staffForThisWeek
+     .filter(staffName => staffName !== 'STAFF')
+     .map(staffName => {
+       // ... row creation logic
+     });
+   ```
+
+2. **Virtualization Logic Improvement**:
+   ```javascript
+   function calculateVisibleRows() {
+     // ...
+     // Skip header row (index 0) since it's already rendered in <thead>
+     // Don't include it in visibleRows
+     // ...
+   }
+   ```
+
+3. **Rendering Safeguard**:
+   ```javascript
+   {visibleRows.map(({ row, virtualIndex }) => {
+     // Skip rendering any row that has the same content as header to prevent duplication
+     if (virtualIndex === 0 || (row.cells[0] === 'STAFF' && row.id !== 'row-1')) {
+       return null;
+     }
+     
+     return (
+       <tr>
+         {/* Row rendering */}
+       </tr>
+     );
+   })}
+   ```
+
+### Lessons Learned
+1. **UI Integrity**:
+   - Table structures with separate `<thead>` and `<tbody>` sections require careful handling
+   - Watch for duplicate rendering of the same data in different table sections
+   - Be cautious of special row names that might match column headers
+
+2. **Virtualization Complexity**:
+   - Virtual scrolling adds complexity that requires special handling for header rows
+   - Explicit handling is needed to prevent headers from being included in scrollable content
+   - Multi-layered filtering might be necessary (data filtering + render filtering)
+
+3. **Data Validation**:
+   - Validate data to prevent problematic entries (like staff named "STAFF")
+   - Consider reserved names that might cause UI confusion
+   - Filter data at multiple levels to catch edge cases
+
+### Prevention Strategies
+1. **Table Structure Best Practices**:
+   - Keep clear separation between header and body row handling
+   - Never render header content in both `<thead>` and `<tbody>`
+   - Add explicit checks to prevent duplicate header-like content
+
+2. **Virtualization Implementation Checks**:
+   - Verify header rows are excluded from virtualized body content
+   - Test scrolling behavior thoroughly to ensure header consistency
+   - Add filtering layers to catch edge cases
+
+3. **Component Testing**:
+   - Test with edge case data (e.g., staff with name "STAFF")
+   - Verify correct rendering with various scroll positions
+   - Include explicit tests for header display consistency
+
+### Related Components
+- `src/components/ShiftTable.js`
+- `src/components/StaffList.js`
+
+## ShiftEditor End Time Selection Issue
+
+**Date:** 2025-03-16
+
+### Issue Description
+After using the test data generator and assigning a shift to one staff member, when attempting to assign a shift to another staff member, the end time selector remained disabled (grayed out) even after selecting a start time.
+
+### Root Cause Analysis
+The issue was caused by a string comparison logic problem in the ShiftEditor component:
+
+1. The `validEndTimeOptions` function was using direct string comparison (`time > startTime`) to filter valid end times
+2. String comparison works for simple cases but can be inconsistent with time formats
+3. This caused all end time options to be incorrectly filtered out in some cases, leaving no valid options
+
+### Solution
+Implemented a more robust time comparison algorithm that converts time strings to minutes for accurate comparison:
+
+```javascript
+const convertTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const startTimeMinutes = convertTimeToMinutes(startTime);
+
+// Filter times that are after the start time
+const filtered = timeOptions.filter(time => {
+  const timeMinutes = convertTimeToMinutes(time);
+  return timeMinutes > startTimeMinutes;
+});
+```
+
+This ensures that the time comparison is accurate regardless of the time string format.
+
+### Lessons Learned
+1. String comparisons can work for simple cases but are unreliable for time format comparisons
+2. Always convert time strings to comparable numerical values before making comparisons
+3. Time format operations benefit from helper functions that handle the conversion logic
+
+### How to Prevent in Future
+1. Implement a shared utility function for time comparisons across the application
+2. Add validation to ensure time selector options are never empty when they should have values
+3. Consider using a date/time library for consistent time operations
+
+## StaffList and ShiftTable Data Synchronization Issue
+
+**Date:** 2025-03-16
+
+### Issue Description
+The ShiftTable component was displaying shifts with staff members, but the StaffList component showed an empty list. This created a data inconsistency where shifts appeared in the table but the corresponding staff members weren't visible in the staff list.
+
+### Root Cause Analysis
+The issue was caused by a format mismatch in how data was stored in localStorage:
+
+1. The `generateTestData.js` utility was saving staff data in a format that only the ShiftTable component could properly interpret
+2. The StaffDetailContext (which powers the StaffList) expected a very specific nested data structure in the `staff_list_data` localStorage key
+3. Data was being saved as:
+   ```javascript
+   {
+     staffMembers: [...],
+     lastUpdated: "timestamp"
+   }
+   ```
+   
+   But StaffDetailContext expected:
+   ```javascript
+   {
+     version: 1,
+     data: {
+       staffMembers: [...],
+       editingStaffId: null, 
+       lastUpdated: "timestamp"
+     },
+     updatedAt: "timestamp"
+   }
+   ```
+
+4. This format mismatch caused the StaffDetailContext to interpret the data as empty, while ShiftTable could still find staff information from other localStorage keys.
+
+### Solution
+The solution involved modifying the `generateAllTestData` function to:
+
+1. Clear localStorage first to ensure a clean start
+2. Generate staff members using the existing test data creation function
+3. Save the data in the exact format expected by StaffDetailContext:
+   ```javascript
+   localStorage.setItem('staff_list_data', JSON.stringify({
+     version: 1,
+     data: {
+       staffMembers: staffMembers,
+       editingStaffId: null,
+       lastUpdated: new Date().toISOString()
+     },
+     updatedAt: new Date().toISOString()
+   }));
+   ```
+4. Also save individual staff records with the correct prefix
+5. Set up ShiftTable data structures separately, ensuring compatibility
+6. Force a page reload to ensure all React contexts pick up the new data
+
+### Lessons Learned
+1. When multiple components access the same data but through different paths, ensure data format consistency is maintained
+2. In localStorage-based applications, data format is critical - even minor structural differences can cause components to fail
+3. Debugging localStorage-based state requires careful examination of the exact data structures each component expects
+
+### How to Prevent in Future
+1. Create shared utility functions that all components use to access data
+2. Document data structure expectations for each component
+3. Use TypeScript interfaces to enforce consistent data structures
+4. Write integration tests that verify data consistency between components

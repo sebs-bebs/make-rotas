@@ -22,7 +22,23 @@ function ShiftEditor({ staffName, day, startTime: initialStartTime, endTime: ini
   // Filter end time options to only show times after start time
   const validEndTimeOptions = useMemo(() => {
     if (!startTime) return [];
-    return timeOptions.filter(time => time > startTime);
+    
+    // Convert time strings to comparable values for proper sorting
+    const convertTimeToMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    const startTimeMinutes = convertTimeToMinutes(startTime);
+    
+    // Filter times that are after the start time
+    const filtered = timeOptions.filter(time => {
+      const timeMinutes = convertTimeToMinutes(time);
+      return timeMinutes > startTimeMinutes;
+    });
+    
+    return filtered;
   }, [timeOptions, startTime]);
   
   // Debug logging for time selection
