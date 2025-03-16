@@ -363,6 +363,56 @@
    - Step 3: Add/remove staff and verify week-specific behavior
    - Step 4: Refresh page and verify persistence
 
+### Optimization Attempts (2025-03-16)
+
+### ShiftTable and ShiftSlot Performance Optimizations
+
+1. **Optimization Goals**
+   - Improve performance for large datasets (50+ staff members)
+   - Reduce re-renders in the ShiftSlot component
+   - Implement virtualization in the ShiftTable component
+   - Maintain all existing functionality and debugging capabilities
+
+2. **Implementation Issues Encountered**
+   - **Circular Dependencies**
+     - Attempted to use `visibleStartIndex` before it was initialized
+     - Incorrect reference order in component logic
+
+   - **Incorrect Assumptions**
+     - Assumed ShiftTable had 2 header rows when it only had 1
+     - Led to incorrect virtualization calculations and visual errors
+
+   - **Component Integration Issues**
+     - Potential mismatches in callback function parameters
+     - Risk of breaking existing data flow patterns
+     - Possible removal of essential debug variables
+
+3. **Optimization Approaches Explored**
+   ```javascript
+   // Attempted to memoize ShiftSlot component
+   const ShiftSlot = React.memo(function ShiftSlot(props) {
+     // Component logic
+   }, (prevProps, nextProps) => {
+     // Custom comparison logic
+   });
+
+   // Created shared time options array
+   const ALL_TIME_OPTIONS = [
+     "00:00", "00:30", "01:00", /* ... other times */
+   ];
+   ```
+
+4. **Temporary Solution**
+   - Created a separate `to_optimize` branch to isolate optimization attempts
+   - Original functionality preserved in main branch
+   - Need to revise optimization approach with better understanding of component architecture
+
+5. **Next Steps for Optimization**
+   - Develop better virtualization approach that respects existing component structure
+   - Preserve all callback patterns and debug functionality 
+   - Implement more targeted memoization strategies
+   - Create comprehensive tests to verify performance improvements
+
 ### Latest Implementation (2025-01-28 06:40 UTC)
 1. **Debug View Improvements**
    - Modified Debug View to always show all valid components
