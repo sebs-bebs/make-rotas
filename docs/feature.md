@@ -1209,3 +1209,24 @@ The Figma design implementation can be used by:
 3. Optionally connecting to the Figma MCP server for dynamic updates
 
 Note: This implementation provides a complete, production-ready design without requiring any external dependencies.
+
+## Performance Optimizations for Large Data Sets (2025-03-16)
+
+### Row Virtualization
+- Implemented virtualized rendering for StaffList and ShiftTable components
+- Only renders visible rows in the viewport instead of all 50+ rows at once
+- Maintains proper scrolling with spacer rows for better performance
+- Added scroll event handling to dynamically update visible rows
+- Keeps all existing functionality intact while improving memory usage and rendering speed
+
+### Skeleton Loading
+- Created a reusable SkeletonLoader component for various UI elements
+- Implemented skeleton loading screens for StaffList and ShiftTable during data loading
+- Shows animated placeholders in the shape of the expected content
+- Simulates loading delay proportional to the data size for a more realistic experience
+- Displays table headers and row placeholders during the loading phase
+- Ensures users receive visual feedback while large datasets are being processed
+- Improves perceived performance by reducing blank screens during loading
+- Works harmoniously with the virtualized rendering system
+
+These optimizations allow the application to efficiently handle 50+ staff members without performance degradation, while maintaining all existing functionality and debug capabilities.

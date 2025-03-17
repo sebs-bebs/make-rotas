@@ -1,10 +1,9 @@
 // StaffSelector.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { useDebug } from './Debug/DebugContext';
 import { useStaffDetail } from '../context/StaffDetailContext';
 
 const StaffSelector = ({ isOpen, onClose, onAddStaff, currentStaffIds = [] }) => {
-  const { updateDebugVariables } = useDebug();
+  // Debug code removed for performance optimization
   const { getStaffMember } = useStaffDetail();
   const [availableStaff, setAvailableStaff] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState([]);
@@ -48,29 +47,8 @@ const StaffSelector = ({ isOpen, onClose, onAddStaff, currentStaffIds = [] }) =>
       // Get available staff
       const staffList = getStaffList();
       setAvailableStaff(staffList);
-      
-      // Log to debug
-      updateDebugVariables({
-        StaffSelector: {
-          isOpen: {
-            value: true,
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "boolean"
-          },
-          availableStaffCount: {
-            value: staffList.length,
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "number"
-          },
-          currentStaffIds: {
-            value: currentStaffIds,
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "array"
-          }
-        }
-      });
     }
-  }, [isOpen, getStaffList, updateDebugVariables, currentStaffIds]);
+  }, [isOpen, getStaffList, currentStaffIds]);
 
   const handleToggleStaff = (staffId) => {
     setSelectedStaff(prev => {
@@ -78,22 +56,6 @@ const StaffSelector = ({ isOpen, onClose, onAddStaff, currentStaffIds = [] }) =>
       const newSelection = isSelected 
         ? prev.filter(id => id !== staffId)
         : [...prev, staffId];
-      
-      // Log selection to debug
-      updateDebugVariables({
-        StaffSelector: {
-          selectedStaffCount: {
-            value: newSelection.length,
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "number"
-          },
-          selectedStaffIds: {
-            value: newSelection,
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "array"
-          }
-        }
-      });
       
       return newSelection;
     });
@@ -107,17 +69,6 @@ const StaffSelector = ({ isOpen, onClose, onAddStaff, currentStaffIds = [] }) =>
     
     if (staffToAdd.length > 0) {
       onAddStaff(staffToAdd);
-      
-      // Log to debug
-      updateDebugVariables({
-        StaffSelector: {
-          staffAdded: {
-            value: staffToAdd,
-            lastUpdated: new Date().toLocaleTimeString(),
-            type: "array"
-          }
-        }
-      });
     }
   };
 

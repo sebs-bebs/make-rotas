@@ -6,10 +6,11 @@ import './App.css';
 import Navbar from './components/Navbar';
 import TabNavigation from './components/TabNavigation';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { DebugProvider, DebugDisplay } from './components/Debug';
+import { DebugProvider } from './components/Debug';
 import { DateProvider } from './context/DateContext';
 import { StaffProvider } from './context/StaffContext';
 import { StaffDetailProvider } from './context/StaffDetailContext';
+import TestDataButton from './components/TestDataButton';
 // Testing components are kept in files but not imported for use
 // import TestingPage from './components/TestingPage';
 
@@ -35,8 +36,8 @@ function App() {
                     <Route path="*" element={<TabNavigation />} />
                   </Routes>
                 </main>
-                {/* Shows helpful information about what's happening in the app */}
-                <DebugDisplay />
+                {/* Button to generate test data */}
+                <TestDataButton />
               </div>
             </StaffDetailProvider>
           </StaffProvider>

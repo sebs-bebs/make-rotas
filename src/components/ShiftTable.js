@@ -450,15 +450,17 @@ function ShiftTable() {
         weekStartDate
       };
       
-      // Build rows for ONLY this week's staff
-      const staffRows = staffForThisWeek.map(staffName => {
-        const stableRowId = `row-staff-${staffName.replace(/\s+/g, '-').toLowerCase()}`;
-        return {
-          id: stableRowId,
-          cells: [staffName, ...Array(numColumns - 1).fill('')],
-          weekStartDate
-        };
-      });
+      // Build rows for ONLY this week's staff, filtering out any erroneous 'STAFF' entries to prevent duplicates
+      const staffRows = staffForThisWeek
+        .filter(staffName => staffName !== 'STAFF') // Filter out any 'STAFF' entries to prevent duplicates
+        .map(staffName => {
+          const stableRowId = `row-staff-${staffName.replace(/\s+/g, '-').toLowerCase()}`;
+          return {
+            id: stableRowId,
+            cells: [staffName, ...Array(numColumns - 1).fill('')],
+            weekStartDate
+          };
+        });
       
       // Combine all rows in proper order
       const newRows = [
@@ -1216,7 +1218,7 @@ function ShiftTable() {
     );
   }, [rows, handleAddStaffClick, handleShiftChange, shiftData, currentWeekState.dates, renderKey]);
 
-  // Scroll position state
+  // Virtualization state
   const tableContainerRef = useRef(null);
   const [visibleStartIndex, setVisibleStartIndex] = useState(1); // Start after header row (only 1 header row)
   const [visibleRowCount, setVisibleRowCount] = useState(20);
@@ -1232,11 +1234,7 @@ function ShiftTable() {
     
     const visibleRows = [];
     
-    // Add header row (always visible)
-    if (rows.length > 0 && rows[0]) {
-      visibleRows.push({ row: rows[0], virtualIndex: 0 });
-    }
-    
+    // Skip header row (index 0) since it's already rendered in <thead>
     // Then add actual data rows based on scroll position
     const startIdx = Math.max(1, visibleStartIndex); // Start after header row
     const endIdx = Math.min(startIdx + visibleRowCount, rows.length);
@@ -1246,6 +1244,15 @@ function ShiftTable() {
         visibleRows.push({ row: rows[i], virtualIndex: i });
       }
     }
+    
+    // Always make sure the "Add Staff" row is visible if it exists
+    const addStaffRowIndex = rows.findIndex(row => row.id === 'row-2');
+    if (addStaffRowIndex > 0 && !visibleRows.some(vr => vr.row.id === 'row-2')) {
+      visibleRows.push({ row: rows[addStaffRowIndex], virtualIndex: addStaffRowIndex });
+    }
+    
+    // Sort rows by their virtualIndex to maintain proper order
+    visibleRows.sort((a, b) => a.virtualIndex - b.virtualIndex);
     
     return visibleRows;
   }
@@ -1392,22 +1399,29 @@ function ShiftTable() {
               )}
               
               {/* Visible rows */}
-              {visibleRows.map(({ row, virtualIndex }) => (
-                <tr key={row.id} className="relative" data-row-index={virtualIndex} style={{ height: rowHeight }}>
-                  {row.cells.map((cell, colIndex) => renderCell(cell, virtualIndex, colIndex))}
-                  {/* Actions column with Remove button */}
-                  <td
-                    key={`${row.id}-action`}
-                    className="border p-2"
-                  >
-                    {row.id === 'row-2' ? (
-                      ''
-                    ) : (
-                      <RemoveButton onRemove={() => handleRemoveStaff(row.id, row.cells[0])} />
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {visibleRows.map(({ row, virtualIndex }) => {
+                // Skip rendering any row that has the same content as header to prevent duplication
+                if (virtualIndex === 0 || (row.cells[0] === 'STAFF' && row.id !== 'row-1')) {
+                  return null;
+                }
+                
+                return (
+                  <tr key={row.id} className="relative" data-row-index={virtualIndex} style={{ height: rowHeight }}>
+                    {row.cells.map((cell, colIndex) => renderCell(cell, virtualIndex, colIndex))}
+                    {/* Actions column with Remove button */}
+                    <td
+                      key={`${row.id}-action`}
+                      className="border p-2"
+                    >
+                      {row.id === 'row-2' ? (
+                        ''
+                      ) : (
+                        <RemoveButton onRemove={() => handleRemoveStaff(row.id, row.cells[0])} />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               
               {/* Bottom spacer row */}
               {rows.length > (visibleStartIndex + visibleRowCount) && (

@@ -9,12 +9,23 @@ import EditButton from './EditButton';
 import Availability from './Availability';
 import StaffRow from './StaffRow';
 import Notification from './Notification';
+import SkeletonLoader from './SkeletonLoader';
 
 function StaffList() {
   const { updateDebugVariables } = useDebug();
   const { staffNumber, updateStaffNumber } = useStaffNumber();
   const { addStaffMember, removeStaffMember, updateStaffMember, updateStaffAvailability, getStaffMember } = useStaffDetail();
   const tableRef = useRef(null);
+  const tableContainerRef = useRef(null);
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Virtualized rendering state
+  const [visibleStartIndex, setVisibleStartIndex] = useState(0);
+  const [visibleRowCount, setVisibleRowCount] = useState(20); // Show 20 rows at a time
+  const [totalHeight, setTotalHeight] = useState(0);
+  const rowHeight = 52; // Approximate height of each row in pixels
 
   // Validate if input contains only letters and spaces
   const isValidName = useCallback((value) => {
@@ -47,6 +58,7 @@ function StaffList() {
 
   // Initialize from loaded data
   useEffect(() => {
+    setIsLoading(true);
     const initializeFromLoadedData = () => {
       const staffMembers = getStaffMember();
       console.log('Initializing from staff members:', staffMembers); // Debug log
@@ -87,6 +99,9 @@ function StaffList() {
           updateStaffNumber(activeStaff.length);
         }
       }
+      // Simulate loading delay when there are many staff members (in real app, this would be real loading time)
+      const delay = (staffMembers && staffMembers.length > 30) ? 800 : 300;
+      setTimeout(() => setIsLoading(false), delay);
     };
 
     initializeFromLoadedData();
@@ -416,7 +431,76 @@ function StaffList() {
     setEditingValues({});
   }, []);
 
+  // Handle scroll events for virtualization
+  const handleScroll = useCallback(() => {
+    if (tableContainerRef.current) {
+      const scrollTop = tableContainerRef.current.scrollTop;
+      const newStartIndex = Math.max(0, Math.floor(scrollTop / rowHeight));
+      setVisibleStartIndex(newStartIndex);
+    }
+  }, [rowHeight]);
+
+  // Setup scroll event listener
+  useEffect(() => {
+    const containerRef = tableContainerRef.current;
+    if (containerRef) {
+      containerRef.addEventListener('scroll', handleScroll);
+      return () => {
+        containerRef.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [handleScroll]);
+
+  // Calculate total height and row count for virtualization
+  useEffect(() => {
+    setTotalHeight(rows.length * rowHeight);
+    // Update visible row count based on container height
+    if (tableContainerRef.current) {
+      const containerHeight = tableContainerRef.current.clientHeight;
+      const visibleRows = Math.ceil(containerHeight / rowHeight) + 2; // Add buffer
+      setVisibleRowCount(visibleRows);
+    }
+  }, [rows.length, rowHeight]);
+
+  // Memoize the rows that should be rendered
+  const visibleRows = useCallback(() => {
+    // Add empty input row at the end
+    const endIndex = Math.min(visibleStartIndex + visibleRowCount, rows.length);
+    return [...Array(endIndex - visibleStartIndex).keys()]
+      .map(i => i + visibleStartIndex);
+  }, [visibleStartIndex, visibleRowCount, rows.length]);
+
   const headerLabels = ['STAFF', 'ROLE', 'COMMENTS', 'AVAILABILITY', ''];
+
+  // Render skeleton loader during loading
+  if (isLoading) {
+    return (
+      <div style={{ width: '100%' }}>
+        <div className="overflow-y-auto" style={{ maxHeight: '35rem' }}>
+          <table style={{ width: '100%' }}>
+            <thead className="sticky top-0 bg-white z-10">
+              <tr>
+                {headerLabels.map((label, index) => (
+                  <th key={index}>{label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array(10).fill().map((_, index) => (
+                <tr key={index}>
+                  <td><SkeletonLoader type="cell" /></td>
+                  <td><SkeletonLoader type="cell" /></td>
+                  <td><SkeletonLoader type="cell" /></td>
+                  <td><SkeletonLoader type="cell" /></td>
+                  <td><SkeletonLoader type="button" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%' }}>
@@ -426,141 +510,151 @@ function StaffList() {
         description={notificationDescription}
         onClose={() => setShowNotification(false)}
       />
-      <table ref={tableRef} style={{ width: '100%' }}>
-        <thead>
-          <tr>
-            {headerLabels.map((label, index) => (
-              <th key={index}>{label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((_, rowIndex) => {
-            const staffId = rowStaffIDs[rowIndex];
-            const isEditing = editingRow === rowIndex;
-            const isAnyRowEditing = editingRow !== null;
-            const isDisabled = isAnyRowEditing && !isEditing;
+      <div 
+        ref={tableContainerRef} 
+        className="overflow-y-auto"
+        style={{ maxHeight: '35rem' }} 
+        onScroll={handleScroll}
+      >
+        <table ref={tableRef} style={{ width: '100%', height: totalHeight }}>
+          <thead className="sticky top-0 bg-white z-10">
+            <tr>
+              {headerLabels.map((label, index) => (
+                <th key={index}>{label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ height: visibleStartIndex * rowHeight }} />
+            {visibleRows().map(rowIndex => {
+              const staffId = rowStaffIDs[rowIndex];
+              const isEditing = editingRow === rowIndex;
+              const isAnyRowEditing = editingRow !== null;
+              const isDisabled = isAnyRowEditing && !isEditing;
 
-            return (
-              <tr 
-                key={rowIndex}
-                className={`
-                  ${isEditing ? 'bg-blue-50' : ''}
-                  ${isDisabled ? 'opacity-50' : ''}
-                `}
-              >
-                <td>
-                  {staffId ? (
-                    isEditing ? (
+              return (
+                <tr 
+                  key={rowIndex}
+                  className={`
+                    ${isEditing ? 'bg-blue-50' : ''}
+                    ${isDisabled ? 'opacity-50' : ''}
+                  `}
+                  style={{ height: rowHeight }}
+                >
+                  <td>
+                    {staffId ? (
+                      isEditing ? (
+                        <input
+                          type="text"
+                          value={editingValues.name || ''}
+                          onChange={(e) => handleEditChange('name', e.target.value)}
+                          placeholder="Name e.g. John"
+                          className="w-full p-1 border rounded"
+                        />
+                      ) : (
+                        <div className="p-1">{inputValues[rowIndex] || ''}</div>
+                      )
+                    ) : (
                       <input
                         type="text"
-                        value={editingValues.name || ''}
-                        onChange={(e) => handleEditChange('name', e.target.value)}
+                        value={inputValues[rowIndex] || ''}
+                        onChange={(e) => handleInputChange(rowIndex, e.target.value)}
                         placeholder="Name e.g. John"
                         className="w-full p-1 border rounded"
+                        disabled={isDisabled}
                       />
+                    )}
+                  </td>
+                  <td>
+                    {staffId ? (
+                      isEditing ? (
+                        <input
+                          type="text"
+                          value={editingValues.role || ''}
+                          onChange={(e) => handleEditChange('role', e.target.value)}
+                          placeholder="Role e.g. Bar Tender"
+                          className="w-full p-1 border rounded"
+                        />
+                      ) : (
+                        <div className="p-1">{roleValues[rowIndex] || ''}</div>
+                      )
                     ) : (
-                      <div className="p-1">{inputValues[rowIndex] || ''}</div>
-                    )
-                  ) : (
-                    <input
-                      type="text"
-                      value={inputValues[rowIndex] || ''}
-                      onChange={(e) => handleInputChange(rowIndex, e.target.value)}
-                      placeholder="Name e.g. John"
-                      className="w-full p-1 border rounded"
-                      disabled={isDisabled}
-                    />
-                  )}
-                </td>
-                <td>
-                  {staffId ? (
-                    isEditing ? (
                       <input
                         type="text"
-                        value={editingValues.role || ''}
-                        onChange={(e) => handleEditChange('role', e.target.value)}
+                        value={roleValues[rowIndex] || ''}
+                        onChange={(e) => handleRoleChange(rowIndex, e.target.value)}
                         placeholder="Role e.g. Bar Tender"
                         className="w-full p-1 border rounded"
+                        disabled={isDisabled}
                       />
+                    )}
+                  </td>
+                  <td>
+                    {staffId ? (
+                      isEditing ? (
+                        <input
+                          type="text"
+                          value={editingValues.comments || ''}
+                          onChange={(e) => handleEditChange('comments', e.target.value)}
+                          placeholder="Comments e.g. New"
+                          className="w-full p-1 border rounded"
+                        />
+                      ) : (
+                        <div className="p-1">{commentValues[rowIndex] || ''}</div>
+                      )
                     ) : (
-                      <div className="p-1">{roleValues[rowIndex] || ''}</div>
-                    )
-                  ) : (
-                    <input
-                      type="text"
-                      value={roleValues[rowIndex] || ''}
-                      onChange={(e) => handleRoleChange(rowIndex, e.target.value)}
-                      placeholder="Role e.g. Bar Tender"
-                      className="w-full p-1 border rounded"
-                      disabled={isDisabled}
-                    />
-                  )}
-                </td>
-                <td>
-                  {staffId ? (
-                    isEditing ? (
                       <input
                         type="text"
-                        value={editingValues.comments || ''}
-                        onChange={(e) => handleEditChange('comments', e.target.value)}
+                        value={commentValues[rowIndex] || ''}
+                        onChange={(e) => handleCommentChange(rowIndex, e.target.value)}
                         placeholder="Comments e.g. New"
                         className="w-full p-1 border rounded"
-                      />
-                    ) : (
-                      <div className="p-1">{commentValues[rowIndex] || ''}</div>
-                    )
-                  ) : (
-                    <input
-                      type="text"
-                      value={commentValues[rowIndex] || ''}
-                      onChange={(e) => handleCommentChange(rowIndex, e.target.value)}
-                      placeholder="Comments e.g. New"
-                      className="w-full p-1 border rounded"
-                      disabled={isDisabled}
-                    />
-                  )}
-                </td>
-                <td>
-                  <Availability
-                    value={isEditing ? editingValues.availability : (availabilityValues[rowIndex] || [])}
-                    onChange={(days) => isEditing ? handleEditChange('availability', days) : handleAvailabilityChange(rowIndex, days)}
-                    disabled={staffId ? (!isEditing || isDisabled) : isDisabled}
-                  />
-                </td>
-                <td className="flex gap-1">
-                  {staffId ? (
-                    <>
-                      <EditButton
-                        onEdit={() => isEditing ? handleSaveClick(rowIndex) : handleEditClick(rowIndex)}
-                        isEditing={isEditing}
                         disabled={isDisabled}
                       />
-                      {isEditing && (
-                        <button
-                          onClick={handleCancelEdit}
-                          className="border border-gray-300 px-2 py-1 text-sm rounded hover:bg-gray-100"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      <RemoveButton 
-                        onRemove={() => handleRemoveClick(rowIndex)} 
-                        disabled={isDisabled}
-                      />
-                    </>
-                  ) : inputValues[rowIndex] && !rowStaffIDs[rowIndex] ? (
-                    <AddButton
-                      onAdd={() => handleAddClick(rowIndex)}
-                      disabled={!isValidName(inputValues[rowIndex]) || isDisabled}
+                    )}
+                  </td>
+                  <td>
+                    <Availability
+                      value={isEditing ? editingValues.availability : (availabilityValues[rowIndex] || [])}
+                      onChange={(days) => isEditing ? handleEditChange('availability', days) : handleAvailabilityChange(rowIndex, days)}
+                      disabled={staffId ? (!isEditing || isDisabled) : isDisabled}
                     />
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  <td className="flex gap-1">
+                    {staffId ? (
+                      <>
+                        <EditButton
+                          onEdit={() => isEditing ? handleSaveClick(rowIndex) : handleEditClick(rowIndex)}
+                          isEditing={isEditing}
+                          disabled={isDisabled}
+                        />
+                        {isEditing && (
+                          <button
+                            onClick={handleCancelEdit}
+                            className="border border-gray-300 px-2 py-1 text-sm rounded hover:bg-gray-100"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <RemoveButton 
+                          onRemove={() => handleRemoveClick(rowIndex)} 
+                          disabled={isDisabled}
+                        />
+                      </>
+                    ) : inputValues[rowIndex] && !rowStaffIDs[rowIndex] ? (
+                      <AddButton
+                        onAdd={() => handleAddClick(rowIndex)}
+                        disabled={!isValidName(inputValues[rowIndex]) || isDisabled}
+                      />
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+            <tr style={{ height: (rows.length - visibleStartIndex - visibleRows().length) * rowHeight }} />
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

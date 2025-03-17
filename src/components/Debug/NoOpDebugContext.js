@@ -4,7 +4,7 @@ import React, { createContext, useContext } from 'react';
 const DebugContext = createContext();
 
 // NoOp version of the debug provider that does nothing performance-intensive
-export const DebugProvider = ({ children }) => {
+export const NoOpDebugProvider = ({ children }) => {
   // NoOp functions
   const toggleDebug = () => {};
   const updateDebugVariables = () => {};
@@ -22,10 +22,10 @@ export const DebugProvider = ({ children }) => {
 };
 
 // Export the hook for components to use
-export const useDebug = () => {
+export const useNoOpDebug = () => {
   const context = useContext(DebugContext);
   if (!context) {
-    throw new Error('useDebug must be used within a DebugProvider');
+    throw new Error('useNoOpDebug must be used within a NoOpDebugProvider');
   }
   return context;
 };

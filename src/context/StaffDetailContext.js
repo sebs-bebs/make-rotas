@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useDebug } from '../components/Debug/DebugContext';
+// Debug import removed for performance optimization
 import { loadStaffListData, saveStaffListData } from '../utils/storage';
 
 const StaffDetailContext = createContext();
@@ -35,7 +35,7 @@ export function StaffDetailProvider({ children }) {
   // Track loading state
   const [isLoading, setIsLoading] = useState(true);
 
-  const { updateDebugVariables } = useDebug();
+  // Removed debug tracking for performance optimization
 
   // Load initial data from localStorage
   useEffect(() => {
@@ -204,33 +204,6 @@ export function StaffDetailProvider({ children }) {
       setEditingStaffId(null);
     }
   };
-
-  // Update debug variables whenever staff members change
-  useEffect(() => {
-    updateDebugVariables({
-      StaffDetail: {
-        totalStaff: {
-          value: staffMembers.length,
-          type: "number",
-          description: "Total number of staff members"
-        },
-        activeStaff: {
-          value: staffMembers.filter(s => s.inList).length,
-          type: "number",
-          description: "Number of active staff members"
-        },
-        localStorage: {
-          value: {
-            staffMembers,
-            editingStaffId,
-            lastUpdated: new Date().toISOString()
-          },
-          type: "object",
-          description: "Current data in localStorage"
-        }
-      }
-    });
-  }, [staffMembers, editingStaffId, updateDebugVariables]);
 
   // Helper functions for availability stats
   const getMostCommonDay = (staff) => {

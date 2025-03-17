@@ -5,6 +5,8 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 // Initialize Firebase (hosting only)
 import './firebase/init';
+// Import test data generator
+import './utils/generateTestData.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
