@@ -45,6 +45,90 @@ function StaffList() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationDescription, setNotificationDescription] = useState('');
 
+  // Add the new state for upload error
+  const [uploadError, setUploadError] = useState(null);
+
+  // Add the file change handler
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const fileContent = e.target.result;
+
+      try {
+        let parsedData;
+        if (fileExtension === 'json') {
+          parsedData = parseJSON(fileContent);
+        } else if (fileExtension === 'csv') {
+          parsedData = parseCSV(fileContent);
+        } else {
+          throw new Error('Unsupported file type. Please upload a JSON or CSV file.');
+        }
+
+        console.log('Parsed Staff Data:', parsedData);
+
+        // Call addBulkStaff with the parsed data
+        addBulkStaff(parsedData);
+
+        // Optional: Reset the file input
+        event.target.value = null;
+      } catch (error) {
+        console.error('Error parsing file:', error.message);
+        setUploadError(error.message);
+      }
+    };
+
+    reader.onerror = () => {
+      setUploadError('Failed to read the file. Please try again.');
+    };
+
+    reader.readAsText(file);
+  };
+
+  // Helper function to parse JSON
+  const parseJSON = (content) => {
+    const data = JSON.parse(content);
+
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid JSON format. Expected an array of staff objects.');
+    }
+
+    return data.map((staff) => {
+      if (!staff.fullName || !staff.role || !staff.comments || !Array.isArray(staff.availability)) {
+        throw new Error('Invalid JSON structure. Each staff object must have fullName, role, comments, and availability.');
+      }
+      return staff;
+    });
+  };
+
+  // Helper function to parse CSV
+  const parseCSV = (content) => {
+    const lines = content.split('\n').map((line) => line.trim()).filter((line) => line);
+    const headers = lines[0].split(',').map((header) => header.trim());
+
+    if (headers.length !== 4 || headers[0] !== 'staffName' || headers[1] !== 'role' || headers[2] !== 'comments' || headers[3] !== 'availability') {
+      throw new Error('Invalid CSV format. Expected headers: staffName,role,comments,availability.');
+    }
+
+    return lines.slice(1).map((line, index) => {
+      const values = line.split(',').map((value) => value.trim());
+      if (values.length !== 4) {
+        throw new Error(`Invalid CSV row at line ${index + 2}. Each row must have 4 values.`);
+      }
+
+      return {
+        fullName: values[0],
+        role: values[1],
+        comments: values[2],
+        availability: values[3].split(';').map((day) => day.trim()),
+      };
+    });
+  };
+
   // Initialize from loaded data
   useEffect(() => {
     const initializeFromLoadedData = () => {
@@ -416,6 +500,78 @@ function StaffList() {
     setEditingValues({});
   }, []);
 
+  const addBulkStaff = (staffArray) => {
+    try {
+      // Validate the staff array
+      const validStaff = validateStaffArray(staffArray);
+  
+      if (validStaff.length === 0) {
+        setUploadError('No valid staff found in the file.');
+        return;
+      }
+  
+      // Add each valid staff member to the context
+      validStaff.forEach((staff) => {
+        addStaffMember({
+          staffID: generateStaffID(),
+          fullName: staff.fullName,
+          role: staff.role || '',
+          comments: staff.comments || '',
+          availability: staff.availability || [],
+          inList: true,
+          state: 'SAVED',
+        });
+      });
+  
+      // Show success notification
+      setNotificationMessage('Staff members successfully imported!');
+      setShowNotification(true);
+  
+      // Clear any previous errors
+      setUploadError(null);
+    } catch (error) {
+      console.error('Error adding bulk staff:', error.message);
+      setUploadError('Failed to import staff. Please check the file format and try again.');
+    }
+  };
+
+  const validateStaffArray = (staffArray) => {
+    if (!Array.isArray(staffArray)) {
+      throw new Error('Invalid input: Expected an array of staff objects.');
+    }
+  
+    return staffArray.map((staff, index) => {
+      if (typeof staff !== 'object' || staff === null) {
+        throw new Error(`Invalid staff object at index ${index}: Expected an object.`);
+      }
+  
+      const { fullName, role, comments, availability } = staff;
+  
+      // Validate fullName (required, non-empty string)
+      if (!fullName || typeof fullName !== 'string' || fullName.trim() === '') {
+        throw new Error(`Invalid fullName at index ${index}: Must be a non-empty string.`);
+      }
+  
+      // Validate role (optional, default to '')
+      const validatedRole = typeof role === 'string' ? role : '';
+  
+      // Validate comments (optional, default to '')
+      const validatedComments = typeof comments === 'string' ? comments : '';
+  
+      // Validate availability (optional, default to [])
+      const validatedAvailability = Array.isArray(availability)
+        ? availability.filter((day) => typeof day === 'string' && day.trim() !== '')
+        : [];
+  
+      return {
+        fullName: fullName.trim(),
+        role: validatedRole,
+        comments: validatedComments,
+        availability: validatedAvailability,
+      };
+    });
+  };
+
   const headerLabels = ['STAFF', 'ROLE', 'COMMENTS', 'AVAILABILITY', ''];
 
   return (
@@ -561,6 +717,37 @@ function StaffList() {
           })}
         </tbody>
       </table>
+      /* BULK UPLOAD SECTION */
+        <div className="mt-8 p-4 border rounded">
+          <h3 className="text-lg font-semibold mb-2">Bulk Upload Staff List</h3>
+          <p className="text-gray-600 mb-2">
+            Upload a file containing your staff details. Only JSON and CSV formats are accepted.
+            For CSV files, please format the data as:
+          </p>
+          <code className="block p-1 mb-2 bg-gray-100 rounded">
+            staffName, role, comments, availability
+            <br />
+            <span className="font-bold text-blue-600">For example:</span> John Doe, Barista, Part-time, Monday;Wednesday
+          </code>
+          
+          {/* Custom styled file input */}
+        <div className="relative">
+          <input 
+            type="file" 
+            accept=".json,.csv"
+            onChange={handleFileChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          <button 
+            type="button" 
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Choose File
+          </button>
+        </div>
+
+        {uploadError && <p className="text-red-500 mt-2">{uploadError}</p>}
+      </div>
     </div>
   );
 }

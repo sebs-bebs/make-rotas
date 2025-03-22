@@ -9,12 +9,14 @@ import React from 'react';
  */
 function EditButton({ onEdit, isEditing, disabled }) {
   return (
-    <button 
+    <button
       onClick={onEdit}
       disabled={disabled}
       className={`
-        ${disabled ? 'bg-gray-600' : 'border border-gray-900'}
-        ${isEditing ? 'bg-blue-500 text-white' : ''}
+        px-4 py-1 rounded transition-all duration-200
+        ${disabled ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : ''}
+        ${isEditing ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}
+        border ${isEditing ? 'border-blue-500' : 'border-gray-400'}
       `}
     >
       {isEditing ? 'Save' : 'Edit'}
