@@ -575,162 +575,176 @@ function StaffList() {
   const headerLabels = ['STAFF', 'ROLE', 'COMMENTS', 'AVAILABILITY', ''];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className="w-full px-2 sm:px-4">
       <Notification
         show={showNotification}
         message={notificationMessage}
         description={notificationDescription}
         onClose={() => setShowNotification(false)}
       />
-      <table ref={tableRef} style={{ width: '100%' }}>
-        <thead>
-          <tr>
-            {headerLabels.map((label, index) => (
-              <th key={index}>{label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((_, rowIndex) => {
-            const staffId = rowStaffIDs[rowIndex];
-            const isEditing = editingRow === rowIndex;
-            const isAnyRowEditing = editingRow !== null;
-            const isDisabled = isAnyRowEditing && !isEditing;
+      
+      {/* Responsive table wrapper */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {headerLabels.map((label, index) => (
+                <th 
+                  key={index}
+                  className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {rows.map((_, rowIndex) => {
+              const staffId = rowStaffIDs[rowIndex];
+              const isEditing = editingRow === rowIndex;
+              const isAnyRowEditing = editingRow !== null;
+              const isDisabled = isAnyRowEditing && !isEditing;
 
-            return (
-              <tr 
-                key={rowIndex}
-                className={`
-                  ${isEditing ? 'bg-blue-50' : ''}
-                  ${isDisabled ? 'opacity-50' : ''}
-                `}
-              >
-                <td>
-                  {staffId ? (
-                    isEditing ? (
+              return (
+                <tr 
+                  key={rowIndex}
+                  className={`
+                    ${isEditing ? 'bg-blue-50' : ''}
+                    ${isDisabled ? 'opacity-50' : ''}
+                    hover:bg-gray-50
+                  `}
+                >
+                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                    {staffId ? (
+                      isEditing ? (
+                        <input
+                          type="text"
+                          value={editingValues.name || ''}
+                          onChange={(e) => handleEditChange('name', e.target.value)}
+                          placeholder="Name"
+                          className="w-full p-1 border rounded text-sm"
+                        />
+                      ) : (
+                        <div className="p-1">{inputValues[rowIndex] || ''}</div>
+                      )
+                    ) : (
                       <input
                         type="text"
-                        value={editingValues.name || ''}
-                        onChange={(e) => handleEditChange('name', e.target.value)}
-                        placeholder="Name e.g. John"
-                        className="w-full p-1 border rounded"
-                      />
-                    ) : (
-                      <div className="p-1">{inputValues[rowIndex] || ''}</div>
-                    )
-                  ) : (
-                    <input
-                      type="text"
-                      value={inputValues[rowIndex] || ''}
-                      onChange={(e) => handleInputChange(rowIndex, e.target.value)}
-                      placeholder="Name e.g. John"
-                      className="w-full p-1 border rounded"
-                      disabled={isDisabled}
-                    />
-                  )}
-                </td>
-                <td>
-                  {staffId ? (
-                    isEditing ? (
-                      <input
-                        type="text"
-                        value={editingValues.role || ''}
-                        onChange={(e) => handleEditChange('role', e.target.value)}
-                        placeholder="Role e.g. Bar Tender"
-                        className="w-full p-1 border rounded"
-                      />
-                    ) : (
-                      <div className="p-1">{roleValues[rowIndex] || ''}</div>
-                    )
-                  ) : (
-                    <input
-                      type="text"
-                      value={roleValues[rowIndex] || ''}
-                      onChange={(e) => handleRoleChange(rowIndex, e.target.value)}
-                      placeholder="Role e.g. Bar Tender"
-                      className="w-full p-1 border rounded"
-                      disabled={isDisabled}
-                    />
-                  )}
-                </td>
-                <td>
-                  {staffId ? (
-                    isEditing ? (
-                      <input
-                        type="text"
-                        value={editingValues.comments || ''}
-                        onChange={(e) => handleEditChange('comments', e.target.value)}
-                        placeholder="Comments e.g. New"
-                        className="w-full p-1 border rounded"
-                      />
-                    ) : (
-                      <div className="p-1">{commentValues[rowIndex] || ''}</div>
-                    )
-                  ) : (
-                    <input
-                      type="text"
-                      value={commentValues[rowIndex] || ''}
-                      onChange={(e) => handleCommentChange(rowIndex, e.target.value)}
-                      placeholder="Comments e.g. New"
-                      className="w-full p-1 border rounded"
-                      disabled={isDisabled}
-                    />
-                  )}
-                </td>
-                <td>
-                  <Availability
-                    value={isEditing ? editingValues.availability : (availabilityValues[rowIndex] || [])}
-                    onChange={(days) => isEditing ? handleEditChange('availability', days) : handleAvailabilityChange(rowIndex, days)}
-                    disabled={staffId ? (!isEditing || isDisabled) : isDisabled}
-                  />
-                </td>
-                <td className="flex gap-1">
-                  {staffId ? (
-                    <>
-                      <EditButton
-                        onEdit={() => isEditing ? handleSaveClick(rowIndex) : handleEditClick(rowIndex)}
-                        isEditing={isEditing}
+                        value={inputValues[rowIndex] || ''}
+                        onChange={(e) => handleInputChange(rowIndex, e.target.value)}
+                        placeholder="Name"
+                        className="w-full p-1 border rounded text-sm"
                         disabled={isDisabled}
                       />
-                      {isEditing && (
-                        <button
-                          onClick={handleCancelEdit}
-                          className="border border-gray-300 px-2 py-1 text-sm rounded hover:bg-gray-100"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      <RemoveButton 
-                        onRemove={() => handleRemoveClick(rowIndex)} 
+                    )}
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                    {staffId ? (
+                      isEditing ? (
+                        <input
+                          type="text"
+                          value={editingValues.role || ''}
+                          onChange={(e) => handleEditChange('role', e.target.value)}
+                          placeholder="Role"
+                          className="w-full p-1 border rounded text-sm"
+                        />
+                      ) : (
+                        <div className="p-1">{roleValues[rowIndex] || ''}</div>
+                      )
+                    ) : (
+                      <input
+                        type="text"
+                        value={roleValues[rowIndex] || ''}
+                        onChange={(e) => handleRoleChange(rowIndex, e.target.value)}
+                        placeholder="Role"
+                        className="w-full p-1 border rounded text-sm"
                         disabled={isDisabled}
                       />
-                    </>
-                  ) : inputValues[rowIndex] && !rowStaffIDs[rowIndex] ? (
-                    <AddButton
-                      onAdd={() => handleAddClick(rowIndex)}
-                      disabled={!isValidName(inputValues[rowIndex]) || isDisabled}
+                    )}
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                    {staffId ? (
+                      isEditing ? (
+                        <input
+                          type="text"
+                          value={editingValues.comments || ''}
+                          onChange={(e) => handleEditChange('comments', e.target.value)}
+                          placeholder="Comments"
+                          className="w-full p-1 border rounded text-sm"
+                        />
+                      ) : (
+                        <div className="p-1">{commentValues[rowIndex] || ''}</div>
+                      )
+                    ) : (
+                      <input
+                        type="text"
+                        value={commentValues[rowIndex] || ''}
+                        onChange={(e) => handleCommentChange(rowIndex, e.target.value)}
+                        placeholder="Comments"
+                        className="w-full p-1 border rounded text-sm"
+                        disabled={isDisabled}
+                      />
+                    )}
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                    <Availability
+                      value={isEditing ? editingValues.availability : (availabilityValues[rowIndex] || [])}
+                      onChange={(days) => isEditing ? handleEditChange('availability', days) : handleAvailabilityChange(rowIndex, days)}
+                      disabled={staffId ? (!isEditing || isDisabled) : isDisabled}
                     />
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      /* BULK UPLOAD SECTION */
-        <div className="mt-8 p-4 border rounded">
-          <h3 className="text-lg font-semibold mb-2">Bulk Upload Staff List</h3>
-          <p className="text-gray-600 mb-2">
-            Upload a file containing your staff details. Only JSON and CSV formats are accepted.
-            For CSV files, please format the data as:
-          </p>
-          <code className="block p-1 mb-2 bg-gray-100 rounded">
-            staffName, role, comments, availability
-            <br />
-            <span className="font-bold text-blue-600">For example:</span> John Doe, Barista, Part-time, Monday;Wednesday
-          </code>
-          
-          {/* Custom styled file input */}
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                    <div className="flex flex-col sm:flex-row gap-1">
+                      {staffId ? (
+                        <>
+                          <EditButton
+                            onEdit={() => isEditing ? handleSaveClick(rowIndex) : handleEditClick(rowIndex)}
+                            isEditing={isEditing}
+                            disabled={isDisabled}
+                            className="w-full sm:w-auto"
+                          />
+                          {isEditing && (
+                            <button
+                              onClick={handleCancelEdit}
+                              className="w-full sm:w-auto border border-gray-300 px-2 py-1 text-sm rounded hover:bg-gray-100"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                          <RemoveButton 
+                            onRemove={() => handleRemoveClick(rowIndex)} 
+                            disabled={isDisabled}
+                            className="w-full sm:w-auto"
+                          />
+                        </>
+                      ) : inputValues[rowIndex] && !rowStaffIDs[rowIndex] ? (
+                        <AddButton
+                          onAdd={() => handleAddClick(rowIndex)}
+                          disabled={!isValidName(inputValues[rowIndex]) || isDisabled}
+                          className="w-full sm:w-auto"
+                        />
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Responsive bulk upload section */}
+      <div className="mt-8 p-3 sm:p-4 border rounded">
+        <h3 className="text-lg font-semibold mb-2">Bulk Upload Staff List</h3>
+        <p className="text-sm text-gray-600 mb-2">
+          Upload a file containing your staff details. JSON and CSV formats accepted.
+        </p>
+        <code className="block p-2 mb-2 bg-gray-100 rounded text-xs sm:text-sm overflow-x-auto">
+          staffName, role, comments, availability
+          <br />
+          <span className="font-bold text-blue-600">Example:</span> John Doe, Barista, Part-time, Monday;Wednesday
+        </code>
+        
         <div className="relative">
           <input 
             type="file" 
@@ -740,13 +754,15 @@ function StaffList() {
           />
           <button 
             type="button" 
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
           >
             Choose File
           </button>
         </div>
 
-        {uploadError && <p className="text-red-500 mt-2">{uploadError}</p>}
+        {uploadError && (
+          <p className="text-red-500 mt-2 text-sm">{uploadError}</p>
+        )}
       </div>
     </div>
   );

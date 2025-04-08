@@ -463,26 +463,44 @@ function ShiftTable() {
       <td
         key={`${row.id}-cell-${colIndex}`}
         data-col-index={colIndex}
-        className={`border p-2 ${colIndex === 0 ? 'min-w-[140px] w-[140px]' : (!isFirstRow && colIndex > 0) ? 'min-w-[180px] w-[180px]' : ''}`}
+        className={`
+          relative border-r border-t border-b p-1 sm:p-2 text-xs sm:text-sm
+          ${colIndex === 0 ? `
+            min-w-[80px] sm:min-w-[120px] 
+            sticky left-0 
+            ${isFirstRow ? 'bg-gray-50' : 'bg-white'}
+            before:absolute before:top-0 before:bottom-0 before:right-[-4px] before:w-4 before:bg-inherit
+            z-20
+          ` : ''}
+          ${!isFirstRow && colIndex > 0 ? 'min-w-[140px] sm:min-w-[180px]' : ''}
+          ${isFirstRow ? `
+            sticky top-0 
+            bg-gray-50
+            z-20
+          ` : ''}
+          ${isFirstRow && colIndex === 0 ? 'z-30' : ''}
+        `}
       >
-        {isAddStaffRow && colIndex === 0 ? (
-          <AddStaffButton onClick={handleAddStaffClick} />
-        ) : isFirstRow || colIndex === 0 ? (
-          cell
-        ) : (!isFirstRow && !isAddStaffRow) ? (
-          <ShiftSlot
-            staffName={rows[rowIndex].cells[0]}
-            day={rows[0].cells[colIndex].split('\n')[0]} // Get day name from header
-            rowId={row.id}
-            colIndex={colIndex}
-            onShiftChange={handleShiftChange}
-            shiftData={getShiftForCell(rows[rowIndex].cells[0], rows[0].cells[colIndex].split('\n')[0])}
-            weekStartDate={currentWeekState.dates[0]}
-            key={`shift-${rows[rowIndex].cells[0]}-${rows[0].cells[colIndex].split('\n')[0]}-${currentWeekState.dates[0]}-${renderKey}`}
-          />
-        ) : (
-          cell
-        )}
+        <div className="relative z-10">
+          {isAddStaffRow && colIndex === 0 ? (
+            <AddStaffButton onClick={handleAddStaffClick} />
+          ) : isFirstRow || colIndex === 0 ? (
+            cell
+          ) : (!isFirstRow && !isAddStaffRow) ? (
+            <ShiftSlot
+              staffName={rows[rowIndex].cells[0]}
+              day={rows[0].cells[colIndex].split('\n')[0]} // Get day name from header
+              rowId={row.id}
+              colIndex={colIndex}
+              onShiftChange={handleShiftChange}
+              shiftData={getShiftForCell(rows[rowIndex].cells[0], rows[0].cells[colIndex].split('\n')[0])}
+              weekStartDate={currentWeekState.dates[0]}
+              key={`shift-${rows[rowIndex].cells[0]}-${rows[0].cells[colIndex].split('\n')[0]}-${currentWeekState.dates[0]}-${renderKey}`}
+            />
+          ) : (
+            cell
+          )}
+        </div>
       </td>
     );
   }, [rows, handleAddStaffClick, handleShiftChange, getShiftForCell, currentWeekState.dates, renderKey]);
@@ -825,36 +843,40 @@ function ShiftTable() {
   }, [currentWeekState, rows, shiftData, weekOffset, updateDebugVariables]);
 
   return (
-    <div className="flex-1 overflow-x-auto">
-      {/* Navigation Controls */}
-      <div className="flex gap-2 mb-4">
+    <div className="flex-1 w-full max-w-full px-2">
+      {/* Navigation Controls - Stack on mobile */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <button 
           onClick={handlePrevWeek}
-          className="px-4 py-2 border rounded hover:bg-gray-100"
+          className="w-full sm:w-auto px-4 py-2 border rounded hover:bg-gray-100 text-sm"
         >
           Previous Week
         </button>
         <button 
           onClick={handleNextWeek}
-          className="px-4 py-2 border rounded hover:bg-gray-100"
+          className="w-full sm:w-auto px-4 py-2 border rounded hover:bg-gray-100 text-sm"
         >
           Next Week
         </button>
         <button 
           onClick={goToCurrentWeek}
-          className="px-4 py-2 border rounded hover:bg-gray-100 bg-blue-50"
+          className="w-full sm:w-auto px-4 py-2 border rounded hover:bg-gray-100 bg-blue-50 text-sm"
         >
           Current Week
         </button>
       </div>
       
-      {/* Table Container */}
-      <div className="mt-4 relative">
-        <div className="overflow-x-auto border rounded-lg shadow-sm bg-white">
+      {/* Table Container with horizontal scroll */}
+      <div className="mt-4 relative -mx-2 sm:mx-0">
+        <div className="overflow-x-auto border rounded-lg shadow-sm bg-white relative">
           <table className="min-w-full divide-y divide-gray-200">
             <tbody>
               {rows.map((row, rowIndex) => (
-                <tr key={row.id} className="relative" data-row-index={rowIndex}>
+                <tr 
+                  key={row.id} 
+                  className="relative" 
+                  data-row-index={rowIndex}
+                >
                   {row.cells.map((cell, colIndex) => {
                     const isFirstRow = rowIndex === 0;
                     const isFirstCol = colIndex === 0;
@@ -864,41 +886,73 @@ function ShiftTable() {
                       <td
                         key={`${row.id}-cell-${colIndex}`}
                         data-col-index={colIndex}
-                        className={`border p-2 ${colIndex === 0 ? 'min-w-[140px] w-[140px]' : (!isFirstRow && colIndex > 0) ? 'min-w-[180px] w-[180px]' : ''}`}
+                        className={`
+                          relative border-r border-t border-b p-1 sm:p-2 text-xs sm:text-sm
+                          ${colIndex === 0 ? `
+                            min-w-[80px] sm:min-w-[120px] 
+                            sticky left-0 
+                            ${isFirstRow ? 'bg-gray-50' : 'bg-white'}
+                            before:absolute before:top-0 before:bottom-0 before:right-[-4px] before:w-4 before:bg-inherit
+                            z-20
+                          ` : ''}
+                          ${!isFirstRow && colIndex > 0 ? 'min-w-[140px] sm:min-w-[180px]' : ''}
+                          ${isFirstRow ? `
+                            sticky top-0 
+                            bg-gray-50
+                            z-20
+                          ` : ''}
+                          ${isFirstRow && colIndex === 0 ? 'z-30' : ''}
+                        `}
                       >
-                        {isAddStaffRow && colIndex === 0 ? (
-                          <AddStaffButton onClick={handleAddStaffClick} />
-                        ) : isFirstRow || colIndex === 0 ? (
-                          cell
-                        ) : (!isFirstRow && !isAddStaffRow) ? (
-                          <ShiftSlot
-                            staffName={rows[rowIndex].cells[0]}
-                            day={rows[0].cells[colIndex].split('\n')[0]} // Get day name from header
-                            rowId={row.id}
-                            colIndex={colIndex}
-                            onShiftChange={handleShiftChange}
-                            shiftData={getShiftForCell(rows[rowIndex].cells[0], rows[0].cells[colIndex].split('\n')[0])}
-                            weekStartDate={currentWeekState.dates[0]}
-                            key={`shift-${rows[rowIndex].cells[0]}-${rows[0].cells[colIndex].split('\n')[0]}-${currentWeekState.dates[0]}-${renderKey}`}
-                          />
-                        ) : (
-                          cell
-                        )}
+                        <div className="relative z-10">
+                          {isAddStaffRow && colIndex === 0 ? (
+                            <AddStaffButton onClick={handleAddStaffClick} />
+                          ) : isFirstRow || colIndex === 0 ? (
+                            <div className="font-medium truncate">{cell}</div>
+                          ) : (!isFirstRow && !isAddStaffRow) ? (
+                            <ShiftSlot
+                              staffName={rows[rowIndex].cells[0]}
+                              day={rows[0].cells[colIndex].split('\n')[0]}
+                              rowId={row.id}
+                              colIndex={colIndex}
+                              onShiftChange={handleShiftChange}
+                              shiftData={getShiftForCell(rows[rowIndex].cells[0], rows[0].cells[colIndex].split('\n')[0])}
+                              weekStartDate={currentWeekState.dates[0]}
+                              key={`shift-${rows[rowIndex].cells[0]}-${rows[0].cells[colIndex].split('\n')[0]}-${currentWeekState.dates[0]}-${renderKey}`}
+                            />
+                          ) : (
+                            <div className="truncate">{cell}</div>
+                          )}
+                        </div>
                       </td>
                     );
                   })}
-                  {/* Actions column with Remove button */}
+                  {/* Actions column - sticky right */}
                   <td
                     key={`${row.id}-action`}
-                    className="border p-2"
+                    className={`
+                      relative border-l border-t border-b p-1 sm:p-2 
+                      sticky right-0 
+                      min-w-[60px] sm:min-w-[80px]
+                      ${rowIndex === 0 ? 'bg-gray-50' : 'bg-white'}
+                      before:absolute before:top-0 before:bottom-0 before:left-[-4px] before:w-4 before:bg-inherit
+                      z-20
+                    `}
                   >
-                    {rowIndex === 0 ? (
-                      'ACTIONS'
-                    ) : row.id === 'row-2' ? (
-                      ''
-                    ) : (
-                      <RemoveButton onRemove={() => handleRemoveStaff(row.id)} />
-                    )}
+                    <div className="relative z-10">
+                      {rowIndex === 0 ? (
+                        <div className="font-medium text-xs">ACTIONS</div>
+                      ) : row.id === 'row-2' ? (
+                        ''
+                      ) : (
+                        <div className="flex justify-center">
+                          <RemoveButton 
+                            onRemove={() => handleRemoveStaff(row.id)} 
+                            className="!px-2 !py-1 text-xs sm:text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -906,9 +960,9 @@ function ShiftTable() {
           </table>
         </div>
         
-        {/* Notification */}
+        {/* Notification - Mobile friendly positioning */}
         {notification && (
-          <div className="fixed bottom-4 right-4 border px-4 py-2 rounded">
+          <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 border px-4 py-2 rounded bg-white shadow-lg text-sm">
             {notification}
           </div>
         )}
