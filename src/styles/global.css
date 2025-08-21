@@ -1,0 +1,53 @@
+/* Global base styles (minimal, no ad-hoc component styling) */
+@import './tokens.css';
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Accessible focus outline */
+*:focus-visible {
+  outline: 2px solid #3b82f6; /* blue-500 */
+  outline-offset: 2px;
+}
+
+/* Basic table styles (for Rota grid later) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+th {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* Small chip label */
+.chip {
+  display: inline-block;
+  font-size: var(--font-size-sm);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: #eef2ff; /* indigo-50 */
+  color: #3730a3;      /* indigo-800 */
+}
+
+/* Export helpers */
+.capture-only {
+  background: #fff;
+}
+[data-exporting] .hide-when-exporting {
+  display: none !important;
+}
